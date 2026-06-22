@@ -25,6 +25,7 @@ class FakePrompter implements Prompter {
 
   selectAnswer: unknown = undefined;
   multiselectAnswer: unknown[] = [];
+  multiselectOpts: Array<{ maxItems?: number }> = [];
   textAnswer: string = "";
   passwordAnswer: string = "";
   confirmAnswer: boolean = true;
@@ -53,7 +54,8 @@ class FakePrompter implements Prompter {
   async select<T>(): Promise<T> {
     return this.selectAnswer as T;
   }
-  async multiselect<T>(): Promise<T[]> {
+  async multiselect<T>(opts: { maxItems?: number }): Promise<T[]> {
+    this.multiselectOpts.push(opts);
     return this.multiselectAnswer as T[];
   }
   async text(): Promise<string> {
@@ -178,6 +180,30 @@ test("builder: empty session list throws a no-sessions error", async () => {
     }),
     /No sessions found/,
   );
+});
+
+test("builder: session picker caps visible rows with maxItems to avoid terminal overflow", async () => {
+  const p = new FakePrompter();
+  p.multiselectAnswer = ["newest"];
+  const adapter = fakeAdapter({
+    listSessions: async () => [
+      { id: "older", title: "older", mtime: 1 },
+      { id: "newest", title: "newest", mtime: 9 },
+    ],
+    // Distill path skips the appendix multiselect, isolating the session picker.
+  });
+  const deps = baseDeps(p, adapter, { geminiAvailable: () => true });
+
+  await buildHandoff({
+    workerHost: "h.deno.net",
+    password: "secret",
+    presetAgent: "pi",
+    cwd: "/tmp",
+    deps,
+  });
+
+  assert.equal(p.multiselectOpts.length, 1, "session picker invoked once");
+  assert.equal(typeof p.multiselectOpts[0].maxItems, "number");
 });
 
 // ----- Distill path --------------------------------------------------------

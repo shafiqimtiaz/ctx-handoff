@@ -58,26 +58,23 @@ test("MINIMAL_HTML_SCAFFOLD: defines a comfortable max-width for the main column
 
 // ----- MINIMAL_HTML_SCAFFOLD design palette -------------------------------
 
-test("MINIMAL_HTML_SCAFFOLD: declares the editorial color palette as CSS custom properties", () => {
-  // The palette is a set of named tokens, not raw hex scattered through
-  // selectors — that way future tweaks happen in one place.
+test("MINIMAL_HTML_SCAFFOLD: declares the Claude warm-editorial palette as CSS custom properties", () => {
+  // The palette is a set of named tokens mirroring DESIGN.md, not raw hex
+  // scattered through selectors — that way future tweaks happen in one place.
   for (const token of [
-    "--bg",
-    "--surface",
-    "--surface-muted",
-    "--border",
-    "--border-strong",
-    "--text",
-    "--text-muted",
-    "--text-faint",
-    "--accent",
-    "--accent-soft",
-    "--accent-line",
-    "--warn",
-    "--warn-soft",
-    "--warn-line",
-    "--code-bg",
-    "--code-text",
+    "--canvas",
+    "--surface-soft",
+    "--surface-card",
+    "--surface-dark",
+    "--ink",
+    "--body-strong",
+    "--body",
+    "--muted",
+    "--muted-soft",
+    "--hairline",
+    "--coral",
+    "--coral-active",
+    "--on-dark",
   ]) {
     assert.match(
       MINIMAL_HTML_SCAFFOLD,
@@ -87,42 +84,53 @@ test("MINIMAL_HTML_SCAFFOLD: declares the editorial color palette as CSS custom 
   }
 });
 
-test("MINIMAL_HTML_SCAFFOLD: emerald accent drives h2 eyebrows and links", () => {
-  // emerald-700 family — h2 color and link color share it.
-  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*color:\s*var\(--accent\)/);
-  assert.match(MINIMAL_HTML_SCAFFOLD, /a[^}]*color:\s*var\(--accent\)/);
+test("MINIMAL_HTML_SCAFFOLD: cream canvas + coral accent are the brand colors", () => {
+  // Canvas is the tinted cream floor; coral is the signature accent on links.
+  assert.match(MINIMAL_HTML_SCAFFOLD, /--canvas\s*:\s*#faf9f5/i);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /--coral\s*:\s*#cc785c/i);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /a\s*\{[^}]*color:\s*var\(--coral\)/);
 });
 
-test("MINIMAL_HTML_SCAFFOLD: amber caution tokens are present for callouts and warnings", () => {
-  assert.match(MINIMAL_HTML_SCAFFOLD, /--warn\s*:\s*#b45309/); // amber-700
-  assert.match(MINIMAL_HTML_SCAFFOLD, /--warn-soft\s*:\s*#fffbeb/); // amber-50
+test("MINIMAL_HTML_SCAFFOLD: loads the editorial font families via @import (no external <link>)", () => {
+  // Cormorant Garamond / Inter / JetBrains Mono load inside the <style>
+  // block, so the document stays a single file with no stylesheet link.
+  assert.match(MINIMAL_HTML_SCAFFOLD, /@import\s+url\(['"]https:\/\/fonts\.googleapis\.com/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /Cormorant\+Garamond/);
 });
 
-test("MINIMAL_HTML_SCAFFOLD: h1 uses a serif font stack", () => {
-  assert.match(MINIMAL_HTML_SCAFFOLD, /h1[^}]*font-family:[^;}]*serif/i);
+test("MINIMAL_HTML_SCAFFOLD: h1 and h2 use the serif display font token", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h1\s*\{[^}]*font-family:\s*var\(--font-display\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2\s*\{[^}]*font-family:\s*var\(--font-display\)/);
+  // The display token resolves to a serif stack.
+  assert.match(MINIMAL_HTML_SCAFFOLD, /--font-display:[^;}]*serif/i);
 });
 
-test("MINIMAL_HTML_SCAFFOLD: h2 is rendered as a small uppercase eyebrow with an accent underline", () => {
-  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*text-transform:\s*uppercase/);
-  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*letter-spacing:/);
-  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*border-bottom:[^;}]*var\(--accent-line\)/);
+test("MINIMAL_HTML_SCAFFOLD: h2 is a serif section head separated by a hairline rule", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2\s*\{[^}]*border-top:[^;}]*var\(--hairline\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2\s*\{[^}]*color:\s*var\(--ink\)/);
 });
 
-test("MINIMAL_HTML_SCAFFOLD: code blocks use the dark surface token", () => {
-  assert.match(MINIMAL_HTML_SCAFFOLD, /pre[^}]*background:\s*var\(--code-bg\)/);
-  assert.match(MINIMAL_HTML_SCAFFOLD, /pre[^}]*color:\s*var\(--code-text\)/);
+test("MINIMAL_HTML_SCAFFOLD: metadata <dl> renders as a cream card and ordered lists use coral numerals", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /dl\s*\{[^}]*background:\s*var\(--surface-card\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /ol\s*>\s*li::before\s*\{[^}]*counter\(item\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /ol\s*>\s*li::before\s*\{[^}]*color:\s*var\(--coral\)/);
 });
 
-test("MINIMAL_HTML_SCAFFOLD: blockquote uses the emerald accent for its left bar", () => {
-  assert.match(MINIMAL_HTML_SCAFFOLD, /blockquote[^}]*border-left:[^;}]*var\(--accent\)/);
-  assert.match(MINIMAL_HTML_SCAFFOLD, /blockquote[^}]*background:\s*var\(--accent-soft\)/);
+test("MINIMAL_HTML_SCAFFOLD: code blocks sit on the dark navy product surface", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /pre\s*\{[^}]*background:\s*var\(--surface-dark\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /pre\s*\{[^}]*color:\s*var\(--on-dark\)/);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: blockquote is a coral-accented cream callout", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /blockquote\s*\{[^}]*border-left:[^;}]*var\(--coral\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /blockquote\s*\{[^}]*background:\s*var\(--surface-soft\)/);
 });
 
 test("MINIMAL_HTML_SCAFFOLD: details/summary are styled for the collapsed raw appendix", () => {
-  // The details panel has rounded corners and a stone border; the summary
-  // bar is a stone-100 surface with uppercase eyebrow text.
-  assert.match(MINIMAL_HTML_SCAFFOLD, /details[^}]*border:\s*1px\s+solid\s+var\(--border\)/);
-  assert.match(MINIMAL_HTML_SCAFFOLD, /details summary[^}]*background:\s*var\(--surface-muted\)/);
+  // The details panel has rounded corners and a cream-card surface with a
+  // hairline border and an uppercase eyebrow summary.
+  assert.match(MINIMAL_HTML_SCAFFOLD, /details\s*\{[^}]*border:\s*1px\s+solid\s+var\(--hairline\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /details\s*\{[^}]*background:\s*var\(--surface-card\)/);
   assert.match(MINIMAL_HTML_SCAFFOLD, /details summary[^}]*text-transform:\s*uppercase/);
 });
 
@@ -152,7 +160,7 @@ test("RECEIVER_SYSTEM_PROMPT: tells the model to use semantic HTML and let the s
   // The prompt is design-aware: it points at the scaffold's styling and
   // forbids inline styles / extra <style> blocks / extra CSS classes.
   assert.match(RECEIVER_SYSTEM_PROMPT, /semantic html/i);
-  assert.match(RECEIVER_SYSTEM_PROMPT, /do not add inline styles/i);
+  assert.match(RECEIVER_SYSTEM_PROMPT, /no inline styles/i);
   assert.match(RECEIVER_SYSTEM_PROMPT, /<style>/);
 });
 

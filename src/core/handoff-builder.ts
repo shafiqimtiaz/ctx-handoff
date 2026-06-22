@@ -38,6 +38,7 @@ export interface Prompter {
     options: Array<{ value: T; label: string }>;
     initialValues?: T[];
     required?: boolean;
+    maxItems?: number;
   }): Promise<T[]>;
   text(opts: { message: string; placeholder?: string }): Promise<string>;
   password(opts: {
@@ -87,6 +88,11 @@ export interface BuildHandoffResult {
 }
 
 const APPENDIX_DEFAULT_RECENT = 10;
+
+// Cap on visible rows in scrollable pickers. Without it, clack renders every
+// option at once; a list taller than the terminal corrupts the in-place
+// redraw and spams scrollback. maxItems windows the list into a fixed viewport.
+const PICKER_MAX_ITEMS = 12;
 
 export async function buildHandoff(args: BuildHandoffArgs): Promise<BuildHandoffResult> {
   const { workerHost, presetAgent, cwd, deps } = args;
@@ -238,6 +244,7 @@ async function chooseSessions(
     })),
     initialValues: [sessions[0].id],
     required: true,
+    maxItems: PICKER_MAX_ITEMS,
   });
   if (isCancelValue(selected)) throw new CancelledError();
   const ids = new Set(selected as string[]);
@@ -342,6 +349,7 @@ async function curateAppendix(messages: SessionMessage[], p: Prompter): Promise<
     options,
     initialValues: options.slice(recentFrom).map((o) => o.value),
     required: false,
+    maxItems: PICKER_MAX_ITEMS,
   });
   if (isCancelValue(selected)) throw new CancelledError();
   return (selected as number[]).map((i) => messages[i]);
