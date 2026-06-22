@@ -126,6 +126,25 @@ test("buildReceiverBrief with GEMINI key renders HTML and opens it", async () =>
   assert.equal(readFileSync(opened[0], "utf8"), "<!doctype html>rendered");
 });
 
+test("buildReceiverBrief skips the agent picker when presetAgent is supplied", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
+  const { deps, fake } = makeDeps();
+  deps.resolveCwd = () => cwd;
+  // Note: no answer for the picker. If the picker runs, the test fails because
+  // it would either return the first option ("pi", going to .pi/) or block.
+  // We set a cancel sentinel just in case the picker DOES run — it'd throw.
+  fake.p.answers["select:Which coding agent to hand off to?"] = "clack:cancel";
+
+  const result = await buildReceiverBrief({
+    decrypted: "md",
+    userRequest: "",
+    presetAgent: "claude",
+    deps,
+  });
+  assert.equal(result.targetAgent, "claude");
+  assert.equal(existsSync(join(cwd, ".claude", "handoff.md")), true);
+});
+
 test("buildReceiverBrief throws CancelledError when user cancels the agent picker", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
   const { deps, fake } = makeDeps();

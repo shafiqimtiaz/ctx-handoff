@@ -50,6 +50,12 @@ export interface ReceiverBriefDeps {
 export interface BuildReceiverBriefArgs {
   decrypted: string;
   userRequest: string;
+  /**
+   * Pre-picked target agent. When set, the TUI agent picker is skipped and
+   * the file lands in `.<presetAgent>/handoff.md`. Lets the existing
+   * `ctx-handoff receive <link> -- <agent> "request"` CLI flow keep working.
+   */
+  presetAgent?: AgentId;
   deps: ReceiverBriefDeps;
 }
 
@@ -70,18 +76,23 @@ const AGENT_OPTIONS: Array<{ value: AgentId; label: string }> = [
 export async function buildReceiverBrief(
   args: BuildReceiverBriefArgs,
 ): Promise<ReceiverBriefResult> {
-  const { decrypted, userRequest, deps } = args;
+  const { decrypted, userRequest, presetAgent, deps } = args;
   const p = deps.prompter;
   const cwd = deps.resolveCwd();
   const tmp = deps.resolveTmpdir();
 
-  // 1. Pick the target agent.
-  const choice = await p.select({
-    message: "Which coding agent to hand off to?",
-    options: AGENT_OPTIONS,
-  });
-  if (isCancelValue(choice)) throw new CancelledError();
-  const targetAgent = choice as AgentId;
+  // 1. Pick the target agent (or use the preset from the CLI).
+  let targetAgent: AgentId;
+  if (presetAgent) {
+    targetAgent = presetAgent;
+  } else {
+    const choice = await p.select({
+      message: "Which coding agent to hand off to?",
+      options: AGENT_OPTIONS,
+    });
+    if (isCancelValue(choice)) throw new CancelledError();
+    targetAgent = choice as AgentId;
+  }
 
   // 2. Decide markdown source. Verbatim unless the user opts into Gemini
   // rendering (and a key is set). Failures degrade to verbatim.
