@@ -2,6 +2,7 @@ import * as p from "@clack/prompts";
 import { detectAgents, createAdapter, AgentId, SUPPORTED_AGENTS } from "../adapters/index.js";
 import { SessionMessage, AgentNotFoundError } from "../adapters/types.js";
 import { formatToHandoffSkill, HandoffSections } from "../core/formatter.js";
+import { distillSession, geminiAvailable } from "../core/distiller.js";
 import { encrypt } from "../core/crypto.js";
 import { uploadPayload } from "../core/transport.js";
 import { encodeLink } from "../core/link.js";
@@ -46,11 +47,27 @@ export async function runExport(opts: ExportOptions): Promise<void> {
     return;
   }
 
-  const sections = await promptSections();
-  if (sections === null) return;
+  let sections: Partial<HandoffSections>;
+  let appendix: SessionMessage[];
 
-  const appendix = await curateAppendix(messages);
-  if (appendix === null) return;
+  if (geminiAvailable()) {
+    spin.start("Distilling session with Gemini");
+    try {
+      sections = await distillSession(messages);
+      appendix = [];
+      spin.stop("Distilled into a handoff brief.");
+    } catch (err) {
+      spin.stop("Distillation failed — falling back to manual.");
+      p.log.warn(String((err as Error).message));
+      const manual = await runManual(messages);
+      if (manual === null) return;
+      ({ sections, appendix } = manual);
+    }
+  } else {
+    const manual = await runManual(messages);
+    if (manual === null) return;
+    ({ sections, appendix } = manual);
+  }
 
   const markdown = formatToHandoffSkill({
     sourceAgent: adapter.getName(),
@@ -60,14 +77,8 @@ export async function runExport(opts: ExportOptions): Promise<void> {
     sections,
   });
 
-  const password = await p.password({
-    message: "Set a password (the receiver needs it to decrypt):",
-    validate: (v) => (v.length < 4 ? "Use at least 4 characters." : undefined),
-  });
-  if (p.isCancel(password)) {
-    cancelled();
-    return;
-  }
+  const password = await resolvePassword();
+  if (password === null) return;
 
   const payload = encrypt(markdown, password);
 
@@ -115,6 +126,43 @@ async function resolveAgent(preset?: AgentId): Promise<AgentId | null> {
     return null;
   }
   return choice as AgentId;
+}
+
+async function resolvePassword(): Promise<string | null> {
+  const fromEnv = process.env.SEND_CONTEXT_PASSWORD;
+  if (fromEnv) {
+    if (fromEnv.length < 4) {
+      p.cancel("SEND_CONTEXT_PASSWORD must be at least 4 characters.");
+      process.exitCode = 1;
+      return null;
+    }
+    return fromEnv;
+  }
+
+  const password = await p.password({
+    message: "Set a password (the receiver needs it to decrypt):",
+    validate: (v) => (v.length < 4 ? "Use at least 4 characters." : undefined),
+  });
+  if (p.isCancel(password)) {
+    cancelled();
+    return null;
+  }
+  return password;
+}
+
+interface ManualResult {
+  sections: Partial<HandoffSections>;
+  appendix: SessionMessage[];
+}
+
+async function runManual(messages: SessionMessage[]): Promise<ManualResult | null> {
+  const sections = await promptSections();
+  if (sections === null) return null;
+
+  const appendix = await curateAppendix(messages);
+  if (appendix === null) return null;
+
+  return { sections, appendix };
 }
 
 async function promptSections(): Promise<Partial<HandoffSections> | null> {

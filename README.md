@@ -30,7 +30,7 @@ The session is distilled into a structured **Context Handoff Skill** document, e
 
 ## How it works
 
-1. **Export** detects the active agent, extracts its session, and lets you curate what to send. You add a short written brief and pick which raw messages to attach.
+1. **Export** detects the active agent and extracts its session. With a `GEMINI_API_KEY` set, it distills the session into the handoff brief automatically; otherwise it guides you through writing the brief and picking which raw messages to attach.
 2. The brief is rendered into the Context Handoff Skill template, encrypted with a password you choose, and uploaded. You get a `send-context://` link.
 3. **Receive** downloads the blob, decrypts it locally, wraps it in an injection prompt, and spawns the receiving agent with that prompt as its opening message.
 
@@ -43,6 +43,7 @@ The session is distilled into a structured **Context Handoff Skill** document, e
 
 - Node.js 20+
 - One of: `pi`, `claude`, or `opencode` with at least one session in the project directory
+- A Google Gemini API key (optional) — set `GEMINI_API_KEY` to auto-distill sessions instead of writing the brief by hand
 - [Deno](https://deno.com) — only if you want to deploy or run the transport worker yourself
 
 ### Install
@@ -100,10 +101,29 @@ SEND_CONTEXT_WORKER=your-project.deno.net send-context export
 send-context export --worker your-project.deno.net --agent pi
 ```
 
-You'll be guided through picking the agent, writing the brief, curating the appendix, and setting a password. The command prints a link:
+Without a Gemini key, you'll be guided through picking the agent, writing the brief, curating the appendix, and setting a password — see [Distill with Gemini](#distill-with-gemini-recommended) to automate the brief. The command prints a link:
 
 ```
 send-context://your-project.deno.net/<id>#<password>
+```
+
+#### Distill with Gemini (recommended)
+
+Raw sessions are noisy. Set `GEMINI_API_KEY` and `export` runs the session through Gemini first, which distills it into the five handoff sections automatically and drops the raw appendix — so the receiver gets a dense brief, not a chat log. The manual section/appendix prompts are skipped.
+
+```bash
+GEMINI_API_KEY=… SEND_CONTEXT_WORKER=your-project.deno.net send-context export
+# optional: override the model (default gemini-2.5-flash)
+GEMINI_MODEL=gemini-2.5-pro GEMINI_API_KEY=… send-context export
+```
+
+If the key is absent or the call fails, `export` falls back to the manual flow — Gemini is an enhancement, not a hard dependency. The key never leaves your machine; only the encrypted, distilled brief is uploaded. It uses Google's OpenAI-compatible endpoint, so no extra SDK is installed.
+
+Set `SEND_CONTEXT_PASSWORD` to skip the password prompt too. With Gemini distillation on and a single detected agent, that makes `export` fully non-interactive — no TTY needed:
+
+```bash
+GEMINI_API_KEY=… SEND_CONTEXT_PASSWORD=… \
+  SEND_CONTEXT_WORKER=your-project.deno.net send-context export --agent pi
 ```
 
 ### Receive a context handoff
@@ -163,4 +183,5 @@ worker/
 
 - **CLI:** TypeScript, [commander](https://github.com/tj/commander.js), [@clack/prompts](https://github.com/bombshell-dev/clack)
 - **Crypto:** Node.js built-in `crypto` (AES-256-GCM, scrypt)
+- **Distillation (optional):** Google Gemini via its OpenAI-compatible Chat Completions endpoint
 - **Transport:** Deno Deploy + Deno KV
