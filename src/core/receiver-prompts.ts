@@ -14,87 +14,261 @@ const GEMINI_ENDPOINT =
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
-export const RECEIVER_SYSTEM_PROMPT = `You are rendering a verbose handoff brief as a self-contained HTML page for
-human review. The input is a Markdown brief. Produce a single complete
-\`<!doctype html>\` document by filling in the body of the provided minimal
-scaffold. Do not modify the scaffold's \`<!doctype html>\`, \`<html>\`, \`<head>\`,
-opening \`<body>\`, or closing \`</body></html>\` tags. Replace the
-\`<!-- CONTENT -->\` marker with rendered HTML.
+export const RECEIVER_SYSTEM_PROMPT = `You are rendering a verbose Markdown handoff brief as a complete HTML document for human review. Produce a single complete HTML document by filling in the body of the provided scaffold. Do not modify the scaffold's \`<!doctype html>\`, \`<html>\`, \`<head>\`, opening \`<body>\`, or closing \`</body></html>\` tags. Replace the \`<!-- CONTENT -->\` marker with rendered HTML.
 
 Preservation rules:
-- Preserve every word from the input Markdown verbatim. Do not paraphrase,
-  summarize, or "tighten" the brief.
-- Preserve all code fences, file paths, commands, error messages, and
-  identifiers exactly as written.
+- Preserve every word from the input Markdown verbatim. Do not paraphrase, summarize, or "tighten" the brief.
+- Preserve all code fences, file paths, commands, error messages, and identifiers exactly as written.
 - Preserve all heading levels and bullet structure.
 
-Styling:
-- Apply the inline CSS reset from the scaffold.
-- Choose a clean, readable layout: comfortable max-width on the body
-  (max ~48rem), generous line-height (1.6+), readable font stack.
-- Render Markdown headings, paragraphs, lists, code fences, and inline code
-  directly. Do not invent editorial cards, sidebars, or navigation.
-- The page should be scannable on a single screen for a short brief, and
-  scrollable for a long one. No JavaScript required.
+Styling rules:
+- The scaffold already provides all visual styling. Do not add inline styles, CSS classes, or \`<style>\` blocks.
+- Use semantic HTML (\`<h1>\`, \`<h2>\`, \`<h3>\`, \`<p>\`, \`<ul>\`, \`<ol>\`, \`<li>\`, \`<pre>\`, \`<code>\`, \`<blockquote>\`, \`<table>\`, \`<hr>\`, \`<strong>\`, \`<em>\`, \`<a>\`). The scaffold styles these elements directly.
+- Page frame: one column, max-width 48rem, warm-stone background (\`#fafaf7\`), serif title, sans body, monospace code, emerald accent (\`#047857\`), amber caution (\`#b45309\`).
+- The first \`<h1>\` in the brief is the page title — leave it as-is; the scaffold styles it as the editorial title.
+- Three bold metadata lines appear right after the \`<h1>\` (\`**Source Agent:** …\`, \`**Timestamp:** …\`, \`**Original Task:** …\`). Leave them as plain bold \`<p>\` paragraphs; the scaffold styles them as muted metadata.
+- \`<h2>\` elements are section headers — leave them as-is; the scaffold renders them as small uppercase eyebrows with an emerald underline.
+- The "Raw Context Appendix" section is long and noisy. Wrap its body content (the \`<h3>\` message labels and the \`<hr>\` separators) in \`<details><summary>Raw context (N messages)</summary>…</details>\` so it stays collapsed by default. Keep the \`<h2>\` "## Raw Context Appendix" itself outside the \`<details>\`.
+- Inside the \`<details>\`, join consecutive messages with a single \`<hr>\` separator (do not add a leading or trailing \`<hr>\`).
 
-Output the complete HTML document, starting with \`<!doctype html>\`. No JSON
-wrapper, no commentary.`;
+Output the complete HTML document, starting with \`<!doctype html>\`. No JSON wrapper, no commentary.`;
 
 /**
- * Minimal HTML scaffold used as the receiver's HTML preview base. Contains
- * a CSS reset, no external CSS deps, no Tailwind, no Mermaid, no fixed
- * section structure. The body of Gemini's output is injected at the
- * `<!-- CONTENT -->` marker.
+ * Editorial HTML scaffold for the receiver's HTML preview. Inline CSS only —
+ * no Tailwind, no Mermaid, no external stylesheets, no fixed-section
+ * placeholders. Gemini emits the body and the scaffold injects it at the
+ * \`<!-- CONTENT -->\` marker; the CSS targets the semantic elements
+ * Gemini produces (h1, h2, h3, p, ul, ol, pre, code, blockquote, table, hr,
+ * strong, em, a, details, summary).
+ *
+ * Palette is the project's editorial stone/slate neutrals with an emerald
+ * accent and amber caution — chosen to read well in print and on screen,
+ * and to feel like a published document rather than a CLI dump.
  */
 export const MINIMAL_HTML_SCAFFOLD = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Handoff Brief</title>
 <style>
+  /* ----------------------------------------------------------------------
+     Editorial Handoff Brief — inline CSS, no external dependencies.
+     Palette: warm stone neutrals, emerald accent, amber caution.
+     Typography: serif title, sans body, monospace code.
+     ---------------------------------------------------------------------- */
+
+  :root {
+    --bg: #fafaf7;             /* stone-50   — page background */
+    --surface: #ffffff;        /* white      — cards, details panels */
+    --surface-muted: #f5f5f4;  /* stone-100  — table heads, summary bars */
+    --border: #e7e5e4;         /* stone-200  — default dividers */
+    --border-strong: #d6d3d1;  /* stone-300  — h1 underline */
+    --text: #1c1917;           /* stone-900  — primary text */
+    --text-muted: #57534e;     /* stone-600  — metadata, captions */
+    --text-faint: #a8a29e;     /* stone-400  — list markers, faint lines */
+    --accent: #047857;         /* emerald-700 — h2 eyebrows, links, focus */
+    --accent-soft: #ecfdf5;    /* emerald-50  — blockquote wash */
+    --accent-line: #a7f3d0;    /* emerald-200 — h2 underline, link border */
+    --warn: #b45309;           /* amber-700   — caution callouts */
+    --warn-soft: #fffbeb;      /* amber-50    — caution wash */
+    --warn-line: #fde68a;      /* amber-200   — caution border */
+    --code-bg: #1c1917;        /* stone-900   — code block background */
+    --code-text: #f5f5f4;      /* stone-100   — code block text */
+  }
+
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
+    background: var(--bg);
+    color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 16px;
-    line-height: 1.6;
-    color: #1f2937;
-    background: #fafaf9;
-    padding: 2rem 1.5rem;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
-  main { max-width: 48rem; margin: 0 auto; }
-  h1, h2, h3, h4 { line-height: 1.25; margin-top: 2em; }
-  h1 { font-size: 1.875rem; margin-top: 0; }
-  h2 { font-size: 1.375rem; border-bottom: 1px solid #e5e7eb; padding-bottom: .25em; }
-  h3 { font-size: 1.125rem; }
-  p { margin: 1em 0; }
-  ul, ol { padding-left: 1.5em; }
-  li { margin: .25em 0; }
+
+  main {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 6rem;
+  }
+
+  /* H1: page title — serif, tight, with a stone underline */
+  h1 {
+    font-family: ui-serif, "Iowan Old Style", "Apple Garamond", Baskerville, Georgia, "Times New Roman", serif;
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 0 0 0.25rem;
+    padding: 0 0 1.25rem;
+    border-bottom: 1px solid var(--border-strong);
+  }
+
+  /* H2: section header — small uppercase eyebrow, emerald underline */
+  h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 3.25rem 0 1.25rem;
+    padding: 0 0 0.5rem;
+    border-bottom: 1px solid var(--accent-line);
+  }
+
+  /* H3: subsection */
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 1.75rem 0 0.6rem;
+    line-height: 1.4;
+  }
+
+  /* Body */
+  p { margin: 0 0 1rem; }
+
+  /* Metadata block (the three bold lines right after the h1) */
+  h1 + p,
+  h1 + p + p,
+  h1 + p + p + p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0.2rem 0;
+    line-height: 1.55;
+  }
+  h1 + p strong,
+  h1 + p + p strong,
+  h1 + p + p + p strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Lists */
+  ul, ol { margin: 0 0 1rem; padding-left: 1.5rem; }
+  li { margin: 0.35rem 0; }
+  li::marker { color: var(--text-faint); }
+  ul ul, ol ol, ul ol, ol ul { margin: 0.25rem 0; }
+
+  /* Inline code */
   code {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    font-size: .9em;
-    background: #f3f4f6;
-    padding: .1em .3em;
-    border-radius: 3px;
+    font-size: 0.875em;
+    background: var(--surface-muted);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    border: 1px solid var(--border);
   }
+
+  /* Code blocks */
   pre {
-    background: #1f2937;
-    color: #f9fafb;
-    padding: 1em 1.25em;
-    border-radius: 6px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
     overflow-x: auto;
-    line-height: 1.5;
+    line-height: 1.55;
+    margin: 0 0 1.25rem;
+    font-size: 0.9rem;
   }
-  pre code { background: none; padding: 0; color: inherit; }
+  pre code {
+    background: none;
+    padding: 0;
+    border: none;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  /* Blockquote — emerald left bar, emerald-50 wash */
   blockquote {
-    margin: 1em 0;
-    padding: .5em 1em;
-    border-left: 3px solid #d1d5db;
-    color: #4b5563;
-    background: #f3f4f6;
+    margin: 1.25rem 0;
+    padding: 0.75rem 1.25rem;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 6px 6px 0;
   }
-  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+  blockquote p { margin: 0.4rem 0; }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.25rem;
+    font-size: 0.92rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface-muted);
+  }
+
+  /* Details/summary — used for the raw appendix */
+  details {
+    margin: 0 0 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  details summary {
+    cursor: pointer;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    background: var(--surface-muted);
+    list-style: none;
+    user-select: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details[open] summary { border-bottom: 1px solid var(--border); }
+  details > *:not(summary) { padding: 0.5rem 1.1rem; }
+  details h3:not(:first-child) { margin-top: 0; }
+
+  /* Links */
+  a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-line);
+  }
+  a:hover { border-bottom-color: var(--accent); }
+
+  /* Strong */
+  strong { font-weight: 600; color: var(--text); }
+
+  /* Selection */
+  ::selection { background: var(--accent-line); color: var(--text); }
+
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    main { max-width: none; padding: 0; }
+    h2, h3 { break-after: avoid; }
+    pre, blockquote, details { break-inside: avoid; }
+    details[open] { break-inside: avoid; }
+  }
 </style>
 </head>
 <body>

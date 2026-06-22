@@ -56,6 +56,70 @@ test("MINIMAL_HTML_SCAFFOLD: defines a comfortable max-width for the main column
   assert.match(MINIMAL_HTML_SCAFFOLD, /max-width:\s*48rem/);
 });
 
+// ----- MINIMAL_HTML_SCAFFOLD design palette -------------------------------
+
+test("MINIMAL_HTML_SCAFFOLD: declares the editorial color palette as CSS custom properties", () => {
+  // The palette is a set of named tokens, not raw hex scattered through
+  // selectors — that way future tweaks happen in one place.
+  for (const token of [
+    "--bg", "--surface", "--surface-muted",
+    "--border", "--border-strong",
+    "--text", "--text-muted", "--text-faint",
+    "--accent", "--accent-soft", "--accent-line",
+    "--warn", "--warn-soft", "--warn-line",
+    "--code-bg", "--code-text",
+  ]) {
+    assert.match(
+      MINIMAL_HTML_SCAFFOLD,
+      new RegExp(`${token}\\s*:`),
+      `scaffold should declare the ${token} design token`,
+    );
+  }
+});
+
+test("MINIMAL_HTML_SCAFFOLD: emerald accent drives h2 eyebrows and links", () => {
+  // emerald-700 family — h2 color and link color share it.
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*color:\s*var\(--accent\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /a[^}]*color:\s*var\(--accent\)/);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: amber caution tokens are present for callouts and warnings", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /--warn\s*:\s*#b45309/);   // amber-700
+  assert.match(MINIMAL_HTML_SCAFFOLD, /--warn-soft\s*:\s*#fffbeb/); // amber-50
+});
+
+test("MINIMAL_HTML_SCAFFOLD: h1 uses a serif font stack", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h1[^}]*font-family:[^;}]*serif/i);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: h2 is rendered as a small uppercase eyebrow with an accent underline", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*text-transform:\s*uppercase/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*letter-spacing:/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /h2[^}]*border-bottom:[^;}]*var\(--accent-line\)/);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: code blocks use the dark surface token", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /pre[^}]*background:\s*var\(--code-bg\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /pre[^}]*color:\s*var\(--code-text\)/);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: blockquote uses the emerald accent for its left bar", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /blockquote[^}]*border-left:[^;}]*var\(--accent\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /blockquote[^}]*background:\s*var\(--accent-soft\)/);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: details/summary are styled for the collapsed raw appendix", () => {
+  // The details panel has rounded corners and a stone border; the summary
+  // bar is a stone-100 surface with uppercase eyebrow text.
+  assert.match(MINIMAL_HTML_SCAFFOLD, /details[^}]*border:\s*1px\s+solid\s+var\(--border\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /details summary[^}]*background:\s*var\(--surface-muted\)/);
+  assert.match(MINIMAL_HTML_SCAFFOLD, /details summary[^}]*text-transform:\s*uppercase/);
+});
+
+test("MINIMAL_HTML_SCAFFOLD: applies a print stylesheet so the brief prints cleanly", () => {
+  assert.match(MINIMAL_HTML_SCAFFOLD, /@media\s+print/);
+});
+
 // ----- RECEIVER_SYSTEM_PROMPT contract -----------------------------------
 
 test("RECEIVER_SYSTEM_PROMPT: does not request JSON output", () => {
@@ -72,6 +136,20 @@ test("RECEIVER_SYSTEM_PROMPT: instructs the model to produce a complete HTML doc
 test("RECEIVER_SYSTEM_PROMPT: requires verbatim preservation of the input markdown", () => {
   assert.match(RECEIVER_SYSTEM_PROMPT, /preserve\s+every\s+word/i);
   assert.match(RECEIVER_SYSTEM_PROMPT, /verbatim/i);
+});
+
+test("RECEIVER_SYSTEM_PROMPT: tells the model to use semantic HTML and let the scaffold style it", () => {
+  // The prompt is design-aware: it points at the scaffold's styling and
+  // forbids inline styles / extra <style> blocks / extra CSS classes.
+  assert.match(RECEIVER_SYSTEM_PROMPT, /semantic html/i);
+  assert.match(RECEIVER_SYSTEM_PROMPT, /do not add inline styles/i);
+  assert.match(RECEIVER_SYSTEM_PROMPT, /<style>/);
+});
+
+test("RECEIVER_SYSTEM_PROMPT: tells the model to collapse the raw appendix in <details>", () => {
+  // The appendix is long; the brief is more scannable with it collapsed.
+  assert.match(RECEIVER_SYSTEM_PROMPT, /<details>/i);
+  assert.match(RECEIVER_SYSTEM_PROMPT, /raw context appendix/i);
 });
 
 // ----- extractMainContent ------------------------------------------------
