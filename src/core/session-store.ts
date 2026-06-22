@@ -1,17 +1,32 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { SessionMessage } from "../adapters/types.js";
 
-/** Return the newest *.jsonl file in a directory, or null if none/absent. */
-export function findLatestJsonl(dir: string): string | null {
-  if (!existsSync(dir)) return null;
-  let newest: { path: string; mtime: number } | null = null;
+export interface JsonlFile {
+  /** Filename without the .jsonl extension. */
+  id: string;
+  path: string;
+  mtime: number;
+}
+
+/** List *.jsonl files in a directory, newest first. Empty if none/absent. */
+export function listJsonl(dir: string): JsonlFile[] {
+  if (!existsSync(dir)) return [];
+  const files: JsonlFile[] = [];
   for (const name of readdirSync(dir)) {
     if (!name.endsWith(".jsonl")) continue;
     const path = join(dir, name);
-    const mtime = statSync(path).mtimeMs;
-    if (!newest || mtime > newest.mtime) newest = { path, mtime };
+    files.push({ id: name.slice(0, -".jsonl".length), path, mtime: statSync(path).mtimeMs });
   }
-  return newest?.path ?? null;
+  return files.sort((a, b) => b.mtime - a.mtime);
+}
+
+/** Build a one-line session title from the first user message. */
+export function sessionTitle(messages: SessionMessage[]): string {
+  const first = messages.find((m) => m.role === "user");
+  const line = first?.content.replace(/\s+/g, " ").trim() ?? "";
+  if (!line) return "Untitled session";
+  return line.length > 60 ? `${line.slice(0, 60)}…` : line;
 }
 
 /** Parse a JSON-lines file into objects, skipping blank/malformed lines. */

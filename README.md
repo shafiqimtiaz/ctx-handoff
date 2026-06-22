@@ -1,16 +1,16 @@
 <div align="center">
 
-# send-context
+# ctx-handoff
 
 **Hand off an AI coding-agent session to another developer through an encrypted, ephemeral link.**
 
-[![npm version](https://img.shields.io/npm/v/send-context.svg)](https://www.npmjs.com/package/send-context)
+[![npm version](https://img.shields.io/npm/v/ctx-handoff.svg)](https://www.npmjs.com/package/ctx-handoff)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![node](https://img.shields.io/node/v/send-context.svg)](https://nodejs.org)
+[![node](https://img.shields.io/node/v/ctx-handoff.svg)](https://nodejs.org)
 
 </div>
 
-`send-context` moves live context between AI coding agents — across machines, across people, across tools. One developer exports their session; a teammate runs a single command to pick up exactly where they left off, with the context injected straight into _their_ agent.
+`ctx-handoff` moves live context between AI coding agents — across machines, across people, across tools. One developer exports their session; a teammate runs a single command to pick up exactly where they left off, with the context injected straight into _their_ agent.
 
 The session is distilled into a structured **Context Handoff** document, encrypted on your machine, and stored behind a short-lived link. The transport layer only ever sees ciphertext.
 
@@ -32,7 +32,7 @@ The session is distilled into a structured **Context Handoff** document, encrypt
 
 Handing off work between agents usually means pasting a wall of chat history and hoping the next agent figures out what matters. That is noisy, leaks whatever was in the log, and lands the receiver in the same dead ends you already hit.
 
-`send-context` extracts the session, distills it to what the next agent actually needs, encrypts it client-side, and gives you one link to share. The receiver decrypts locally and launches their own agent with the context already loaded.
+`ctx-handoff` extracts the session, distills it to what the next agent actually needs, encrypts it client-side, and gives you one link to share. The receiver decrypts locally and launches their own agent with the context already loaded.
 
 ## Features
 
@@ -46,12 +46,12 @@ Handing off work between agents usually means pasting a wall of chat history and
 
 ## How it works
 
-1. **Export** detects the active agent and extracts its session. With a `GEMINI_API_KEY` set, it distills the session into the handoff brief automatically; otherwise it guides you through writing the brief and choosing which raw messages to attach.
-2. The brief is rendered into the Context Handoff template, encrypted with a password you choose, and uploaded. You get a `send-context://` link.
+1. **Export** detects the active agent and lets you pick one or more of its sessions (newest pre-selected), which are merged chronologically. With a `GEMINI_API_KEY` set, it distills the session into the handoff brief automatically; otherwise it guides you through writing the brief and choosing which raw messages to attach.
+2. The brief is rendered into the Context Handoff template, encrypted with a password you choose, and uploaded. You get a `ctx-handoff://` link.
 3. **Receive** downloads the blob, decrypts it locally, wraps it in an injection prompt, and spawns the receiving agent with that prompt as its opening message.
 
 > [!NOTE]
-> The password travels in the link fragment (`#…`), which is only ever processed client-side. Share the link over a channel you trust, or drop the fragment and share the password separately — `receive` will prompt for it.
+> The password is never part of the link. Share it with the receiver separately — `receive` always prompts for it before decrypting.
 
 ## Getting started
 
@@ -65,17 +65,17 @@ Handing off work between agents usually means pasting a wall of chat history and
 ### Install
 
 ```bash
-npm i -g send-context --registry=https://registry.npmjs.org/
-send-context --help
+npm i -g ctx-handoff --registry=https://registry.npmjs.org/
+ctx-handoff --help
 ```
 
 > [!NOTE]
-> The explicit `--registry` flag bypasses any private or proxy registry in your `~/.npmrc` that may not mirror the latest version. On a default npm setup, plain `npm i -g send-context` works too.
+> The explicit `--registry` flag bypasses any private or proxy registry in your `~/.npmrc` that may not mirror the latest version. On a default npm setup, plain `npm i -g ctx-handoff` works too.
 
 Or run it without installing:
 
 ```bash
-npx send-context --help
+npx ctx-handoff --help
 ```
 
 <details>
@@ -95,27 +95,27 @@ node dist/index.js --help
 ### Send a context handoff
 
 ```bash
-SEND_CONTEXT_WORKER=your-project.deno.net send-context export
+CTX_HANDOFF_WORKER=your-project.deno.net ctx-handoff export
 # or pass the host and agent explicitly:
-send-context export --worker your-project.deno.net --agent pi
+ctx-handoff export --worker your-project.deno.net --agent pi
 ```
 
 Without a Gemini key, you are guided through choosing the agent, writing the brief, curating the appendix, and setting a password. The command prints a link:
 
 ```
-send-context://your-project.deno.net/<id>#<password>
+ctx-handoff://your-project.deno.net/<id>
 ```
 
 ### Receive a context handoff
 
 ```bash
-# Launch an agent with the context injected:
-send-context receive 'send-context://…/<id>#<password>' -- pi "continue"
-send-context receive 'send-context://…/<id>#<password>' -- claude "continue"
-send-context receive 'send-context://…/<id>#<password>' -- opencode run "continue"
+# Launch an agent with the context injected (you'll be prompted for the password):
+ctx-handoff receive 'ctx-handoff://…/<id>' -- pi "continue"
+ctx-handoff receive 'ctx-handoff://…/<id>' -- claude "continue"
+ctx-handoff receive 'ctx-handoff://…/<id>' -- opencode run "continue"
 
 # Or just print the decrypted handoff document:
-send-context receive 'send-context://…/<id>#<password>'
+ctx-handoff receive 'ctx-handoff://…/<id>'
 ```
 
 ## Distill with Gemini
@@ -123,28 +123,28 @@ send-context receive 'send-context://…/<id>#<password>'
 Raw sessions are noisy. Set `GEMINI_API_KEY` and `export` runs the session through Gemini first, distilling it into the five handoff sections and dropping the raw appendix — so the receiver gets a dense brief, not a chat log. The manual section and appendix prompts are skipped.
 
 ```bash
-GEMINI_API_KEY=… SEND_CONTEXT_WORKER=your-project.deno.net send-context export
+GEMINI_API_KEY=… CTX_HANDOFF_WORKER=your-project.deno.net ctx-handoff export
 # optional: override the model (default gemini-2.5-flash)
-GEMINI_MODEL=gemini-2.5-pro GEMINI_API_KEY=… send-context export
+GEMINI_MODEL=gemini-2.5-pro GEMINI_API_KEY=… ctx-handoff export
 ```
 
 If the key is absent or the call fails, `export` falls back to the manual flow — Gemini is an enhancement, not a hard dependency. The key never leaves your machine; only the encrypted, distilled brief is uploaded, and it uses Google's OpenAI-compatible endpoint, so no extra SDK is installed.
 
-Set `SEND_CONTEXT_PASSWORD` to skip the password prompt as well. With distillation on and a single detected agent, that makes `export` fully non-interactive — no TTY required:
+Set `CTX_HANDOFF_PASSWORD` to skip the password prompt as well. With distillation on and a single detected agent, that makes `export` fully non-interactive — no TTY required:
 
 ```bash
-GEMINI_API_KEY=… SEND_CONTEXT_PASSWORD=… \
-  SEND_CONTEXT_WORKER=your-project.deno.net send-context export --agent pi
+GEMINI_API_KEY=… CTX_HANDOFF_PASSWORD=… \
+  CTX_HANDOFF_WORKER=your-project.deno.net ctx-handoff export --agent pi
 ```
 
 ### Environment variables
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `SEND_CONTEXT_WORKER` | yes (or `--worker`) | Transport worker host, e.g. `your-project.deno.net` |
+| `CTX_HANDOFF_WORKER` | yes (or `--worker`) | Transport worker host, e.g. `your-project.deno.net` |
 | `GEMINI_API_KEY` | no | Enables automatic distillation |
 | `GEMINI_MODEL` | no | Override the model (default `gemini-2.5-flash`) |
-| `SEND_CONTEXT_PASSWORD` | no | Skip the interactive password prompt |
+| `CTX_HANDOFF_PASSWORD` | no | Skip the interactive password prompt |
 
 ## Deploy the transport
 
@@ -176,7 +176,7 @@ deno task deploy     # deploys --prod, prints your *.deno.net host
 | **Claude Code** | reads `~/.claude/projects/<project>/*.jsonl` | Reads the documented JSONL transcript. |
 
 > [!TIP]
-> Adding a new agent is a single file implementing the `AgentAdapter` interface (`getName()` + `extractSession()`). Register it in `src/adapters/index.ts`.
+> Adding a new agent is a single file implementing the `AgentAdapter` interface (`getName()` + `listSessions()` + `extractSession()`). Register it in `src/adapters/index.ts`.
 
 ## The Context Handoff document
 
@@ -197,7 +197,7 @@ src/
   core/
     crypto.ts         AES-256-GCM + scrypt
     distiller.ts      optional Gemini distillation
-    link.ts           send-context:// codec
+    link.ts           ctx-handoff:// codec
     transport.ts      upload/download client
     formatter.ts      Context Handoff renderer
     session-store.ts  JSONL helpers

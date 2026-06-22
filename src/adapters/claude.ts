@@ -1,10 +1,11 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { AgentAdapter, SessionMessage } from "./types.js";
+import { AgentAdapter, SessionMessage, SessionRef } from "./types.js";
 import { CLAUDE_PROJECTS_ROOT, claudeSlug } from "../core/paths.js";
 import {
-  findLatestJsonl,
+  listJsonl,
   readJsonl,
+  sessionTitle,
   summarizeValue,
 } from "../core/session-store.js";
 
@@ -26,15 +27,29 @@ export class ClaudeAdapter implements AgentAdapter {
     return existsSync(join(CLAUDE_PROJECTS_ROOT, claudeSlug(cwd)));
   }
 
-  async extractSession(): Promise<SessionMessage[]> {
+  async listSessions(): Promise<SessionRef[]> {
     const dir = join(CLAUDE_PROJECTS_ROOT, claudeSlug(this.cwd));
-    const file = findLatestJsonl(dir);
-    if (!file) {
-      throw new Error(
-        `No Claude Code session found for this project (${dir}).`,
-      );
-    }
+    return listJsonl(dir).map((f) => {
+      const messages = this.parse(f.path);
+      return {
+        id: f.id,
+        title: sessionTitle(messages),
+        mtime: f.mtime,
+        messageCount: messages.length,
+      };
+    });
+  }
 
+  async extractSession(id?: string): Promise<SessionMessage[]> {
+    const dir = join(CLAUDE_PROJECTS_ROOT, claudeSlug(this.cwd));
+    const file = id ? join(dir, `${id}.jsonl`) : listJsonl(dir)[0]?.path;
+    if (!file || !existsSync(file)) {
+      throw new Error(`No Claude Code session found for this project (${dir}).`);
+    }
+    return this.parse(file);
+  }
+
+  private parse(file: string): SessionMessage[] {
     const messages: SessionMessage[] = [];
     for (const line of readJsonl(file)) {
       const entry = line as ClaudeLine;

@@ -3,15 +3,29 @@ export interface SessionMessage {
   content: string;
 }
 
+/** A selectable session in the agent's store, used to build the picker. */
+export interface SessionRef {
+  /** Stable id used to extract this session (jsonl filename stem or ses_… id). */
+  id: string;
+  /** Short preview of the first user message, for display. */
+  title: string;
+  /** Sort key — real mtime (ms) where available, else a descending index. */
+  mtime: number;
+  /** Message count, when known without a full extraction. */
+  messageCount?: number;
+}
+
 export interface AgentAdapter {
   /** Human-readable agent name, e.g. "Pi" or "Claude Code". */
   getName(): string;
+  /** List this project's sessions, newest first. */
+  listSessions(): Promise<SessionRef[]>;
   /**
-   * Extract the active/most-recent session as an ordered message list by
-   * shelling out to the agent's native CLI. Throws AgentNotFoundError if the
+   * Extract a session as an ordered message list. With no id, extracts the
+   * most-recent session (back-compat). Throws AgentNotFoundError if the
    * underlying binary is missing.
    */
-  extractSession(): Promise<SessionMessage[]>;
+  extractSession(id?: string): Promise<SessionMessage[]>;
 }
 
 export class AgentNotFoundError extends Error {

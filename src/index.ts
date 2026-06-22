@@ -10,7 +10,7 @@ const program = new Command();
 const { version } = require("../package.json") as { version: string };
 
 program
-  .name("send-context")
+  .name("ctx-handoff")
   .description("Relay AI coding-agent session context between developers via an encrypted, ephemeral link.")
   .version(version)
   .enablePositionalOptions();
@@ -19,7 +19,7 @@ program
   .command("export")
   .description("Extract the current agent session, format it, encrypt it, and produce a share link.")
   .option("-a, --agent <agent>", "force agent: pi | claude | opencode")
-  .option("-w, --worker <host>", "Cloudflare Worker host (or set SEND_CONTEXT_WORKER)")
+  .option("-w, --worker <host>", "Cloudflare Worker host (or set CTX_HANDOFF_WORKER)")
   .action((opts: { agent?: string; worker?: string }) =>
     runExport({ agent: opts.agent as AgentId | undefined, worker: opts.worker } as ExportOptions),
   );
@@ -27,7 +27,7 @@ program
 program
   .command("receive")
   .description("Download and decrypt a context handoff, then launch an agent with the context injected.")
-  .argument("<link>", "send-context:// link")
+  .argument("<link>", "ctx-handoff:// link")
   .argument("[agent...]", "agent command to launch after --, e.g. -- pi \"continue\"")
   .allowUnknownOption()
   .passThroughOptions()

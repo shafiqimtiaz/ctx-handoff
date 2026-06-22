@@ -10,7 +10,7 @@ Read it carefully. Do not repeat "Completed Steps". Avoid "Failed Approaches".
 Acknowledge the "Current State" and immediately begin working on the "Next Steps".`;
 
 export async function runReceive(rawLink: string, agentArgv: string[]): Promise<void> {
-  p.intro("send-context receive");
+  p.intro("ctx-handoff receive");
 
   // commander hands us the literal "--" separator as the first token; drop it.
   if (agentArgv[0] === "--") agentArgv = agentArgv.slice(1);
@@ -38,15 +38,11 @@ export async function runReceive(rawLink: string, agentArgv: string[]): Promise<
   }
   spin.stop("Downloaded.");
 
-  let password = link.password;
-  if (!password) {
-    const entered = await p.password({ message: "Password:" });
-    if (p.isCancel(entered)) {
-      p.cancel("Cancelled.");
-      process.exitCode = 130;
-      return;
-    }
-    password = entered;
+  const password = await p.password({ message: "Password:" });
+  if (p.isCancel(password)) {
+    p.cancel("Cancelled.");
+    process.exitCode = 130;
+    return;
   }
 
   let markdown: string;

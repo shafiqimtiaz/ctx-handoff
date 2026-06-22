@@ -1,45 +1,42 @@
 /**
- * send-context link codec.
+ * ctx-handoff link codec.
  *
- * Format: send-context://<workerHost>/<id>#<password>
+ * Format: ctx-handoff://<workerHost>/<id>
  *
  *   - workerHost: the worker host (no scheme), e.g.
- *     "send-context.example.deno.net". https is always assumed.
+ *     "ctx-handoff.example.deno.net". https is always assumed.
  *   - id:         the KV record id returned by the worker on upload.
- *   - password:   the symmetric password in the URL fragment. The fragment
- *     never leaves the local machine when fetching (it is client-side only),
- *     keeping the transport zero-knowledge.
+ *
+ * The password is never part of the link — the sender shares it out of band and
+ * the receiver is prompted for it, keeping the transport zero-knowledge.
  */
 
 export interface HandoffLink {
   workerHost: string;
   id: string;
-  /** Empty when the link omits the fragment; the receiver is then prompted. */
-  password: string;
 }
 
-const LINK_RE = /^send-context:\/\/([^/]+)\/([^#]+)(?:#(.*))?$/;
+const LINK_RE = /^ctx-handoff:\/\/([^/]+)\/([^#]+)$/;
 
 export function encodeLink(link: HandoffLink): string {
-  const { workerHost, id, password } = link;
-  if (!workerHost || !id || !password) {
-    throw new Error("encodeLink: workerHost, id and password are all required.");
+  const { workerHost, id } = link;
+  if (!workerHost || !id) {
+    throw new Error("encodeLink: workerHost and id are required.");
   }
-  return `send-context://${stripScheme(workerHost)}/${encodeURIComponent(id)}#${encodeURIComponent(password)}`;
+  return `ctx-handoff://${stripScheme(workerHost)}/${encodeURIComponent(id)}`;
 }
 
 export function decodeLink(raw: string): HandoffLink {
   const match = LINK_RE.exec(raw.trim());
   if (!match) {
     throw new Error(
-      "Invalid send-context link. Expected: send-context://<host>/<id>#<password>",
+      "Invalid ctx-handoff link. Expected: ctx-handoff://<host>/<id>",
     );
   }
-  const [, workerHost, id, password] = match;
+  const [, workerHost, id] = match;
   return {
     workerHost: stripScheme(workerHost),
     id: decodeURIComponent(id),
-    password: password ? decodeURIComponent(password) : "",
   };
 }
 

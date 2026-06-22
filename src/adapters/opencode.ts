@@ -1,4 +1,4 @@
-import { AgentAdapter, SessionMessage } from "./types.js";
+import { AgentAdapter, SessionMessage, SessionRef } from "./types.js";
 import { run, commandExists } from "../core/exec.js";
 import { summarizeValue } from "../core/session-store.js";
 
@@ -21,8 +21,15 @@ export class OpenCodeAdapter implements AgentAdapter {
     return commandExists(OpenCodeAdapter.BIN);
   }
 
-  async extractSession(): Promise<SessionMessage[]> {
-    const sessionId = await this.latestSessionId();
+  async listSessions(): Promise<SessionRef[]> {
+    const rows = await this.sessionRows();
+    // Rows are newest-first; use a descending index as the sort key since the
+    // CLI does not expose per-session timestamps here.
+    return rows.map((row, i) => ({ id: row.id, title: row.title, mtime: -i }));
+  }
+
+  async extractSession(id?: string): Promise<SessionMessage[]> {
+    const sessionId = id ?? this.firstId(await this.sessionRows());
     if (!sessionId) {
       throw new Error("No OpenCode session found for this project.");
     }
@@ -52,7 +59,12 @@ export class OpenCodeAdapter implements AgentAdapter {
     return messages;
   }
 
-  private async latestSessionId(): Promise<string | null> {
+  private firstId(rows: SessionRow[]): string | null {
+    return rows[0]?.id ?? null;
+  }
+
+  /** Parse `opencode session list` rows (newest-first) into id + title. */
+  private async sessionRows(): Promise<SessionRow[]> {
     const { stdout, code, stderr } = await run(
       OpenCodeAdapter.BIN,
       ["session", "list"],
@@ -61,13 +73,21 @@ export class OpenCodeAdapter implements AgentAdapter {
     if (code !== 0) {
       throw new Error(`opencode session list failed: ${stderr.trim() || `exit ${code}`}`);
     }
-    // Rows are sorted newest-first; the id is the first `ses_…` token per line.
+    const rows: SessionRow[] = [];
     for (const line of stdout.split("\n")) {
       const match = /\bses_\S+/.exec(line);
-      if (match) return match[0];
+      if (!match) continue;
+      const id = match[0];
+      const title = line.replace(id, "").trim() || id;
+      rows.push({ id, title });
     }
-    return null;
+    return rows;
   }
+}
+
+interface SessionRow {
+  id: string;
+  title: string;
 }
 
 interface OpenCodeExport {
