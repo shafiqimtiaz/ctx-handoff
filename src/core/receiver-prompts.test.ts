@@ -146,9 +146,12 @@ test("RECEIVER_SYSTEM_PROMPT: does not request JSON output", () => {
   assert.doesNotMatch(RECEIVER_SYSTEM_PROMPT, /JSON object/i);
 });
 
-test("RECEIVER_SYSTEM_PROMPT: instructs the model to produce a complete HTML document", () => {
-  assert.match(RECEIVER_SYSTEM_PROMPT, /<!doctype html>/i);
-  assert.match(RECEIVER_SYSTEM_PROMPT, /complete\s+html\s+document/i);
+test("RECEIVER_SYSTEM_PROMPT: instructs the model to emit a body fragment, not a full document", () => {
+  // The page owns all chrome; Gemini emits only the body fragment.
+  assert.match(RECEIVER_SYSTEM_PROMPT, /body fragment/i);
+  // It must forbid the document wrapper, not request one.
+  assert.match(RECEIVER_SYSTEM_PROMPT, /no\s+`?<!doctype html>`?/i);
+  assert.doesNotMatch(RECEIVER_SYSTEM_PROMPT, /complete\s+html\s+document/i);
 });
 
 test("RECEIVER_SYSTEM_PROMPT: requires verbatim preservation of the input markdown", () => {
@@ -273,21 +276,25 @@ test("distillToHtmlAndMarkdown: extracts <main> body from Gemini's HTML and inje
   }
 });
 
-test("distillToHtmlAndMarkdown: falls back to Gemini's full output when no <main> or <body> found", async () => {
+test("distillToHtmlAndMarkdown: injects a bare fragment straight into the scaffold (single masthead)", async () => {
   const originalFetch = globalThis.fetch;
-  const fallback = "<!doctype html><h1>bare html</h1>";
+  // The new contract: Gemini emits only a body fragment, no document wrapper.
+  const fragment = "<h1>Context Handoff</h1><p>body</p>";
   globalThis.fetch = (async () =>
-    new Response(
-      JSON.stringify({
-        choices: [{ message: { content: fallback } }],
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    )) as typeof fetch;
+    new Response(JSON.stringify({ choices: [{ message: { content: fragment } }] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof fetch;
   process.env.GEMINI_API_KEY = "test-key";
 
   try {
     const out = await distillToHtmlAndMarkdown("# Brief", "pi");
-    assert.equal(out.html, fallback);
+    // The page is always the scaffold — exactly one masthead header.
+    assert.match(out.html, /^<!doctype html>/i);
+    assert.equal((out.html.match(/<header>/gi) || []).length, 1, "only the scaffold masthead");
+    // The fragment is injected verbatim.
+    assert.match(out.html, /<h1>Context Handoff<\/h1><p>body<\/p>/);
+    assert.doesNotMatch(out.html, /<!--\s*CONTENT\s*-->/);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.GEMINI_API_KEY;

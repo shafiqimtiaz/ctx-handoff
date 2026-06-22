@@ -3,9 +3,9 @@ import { AgentId } from "../adapters/index.js";
 /**
  * Receiver-side Gemini generation. The receiver decrypts the sender's
  * verbose Markdown brief, then (when a key is set) calls Gemini to render
- * the brief as a self-contained HTML page for human review. When no key
- * is set, the receiver skips this step and writes the decrypted markdown
- * verbatim — graceful degrade.
+ * the brief as a semantic HTML body fragment, which is injected into our
+ * own scaffold for human review. When no key is set, the receiver skips
+ * this step and writes the decrypted markdown verbatim — graceful degrade.
  *
  * Same OpenAI-compatible endpoint as the sender side; no SDK.
  */
@@ -13,7 +13,7 @@ const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
-export const RECEIVER_SYSTEM_PROMPT = `You are rendering a verbose Markdown handoff brief as a complete HTML document for human review. Produce a single complete HTML document by filling in the body of the provided scaffold. Do not modify the scaffold's \`<!doctype html>\`, \`<html>\`, \`<head>\`, opening \`<body>\`, or closing \`</body></html>\` tags. Replace the \`<!-- CONTENT -->\` marker with rendered HTML.
+export const RECEIVER_SYSTEM_PROMPT = `You are rendering a verbose Markdown handoff brief as semantic HTML for human review. The brief is inserted into a pre-styled page, so output ONLY a body fragment: no \`<!doctype html>\`, no \`<html>\`/\`<head>\`/\`<body>\`/\`<main>\` wrapper, and no page masthead or repo-link chrome (the page already shows the product title). Begin directly with the brief's first element.
 
 Preservation rules:
 - Preserve every word from the input Markdown verbatim. Do not paraphrase, summarize, or "tighten" the brief.
@@ -21,17 +21,17 @@ Preservation rules:
 - Preserve all heading levels and bullet structure.
 
 Styling rules:
-- The scaffold owns ALL visual styling (the Claude/Anthropic warm-editorial system). Do not describe, replicate, or add any styling: no inline styles, no CSS classes, no \`id\` attributes, no \`<style>\` blocks. Your only job is to emit clean, well-structured semantic HTML; the scaffold makes it beautiful.
+- The page owns ALL visual styling (the Claude/Anthropic warm-editorial system). Do not describe, replicate, or add any styling: no inline styles, no CSS classes, no \`id\` attributes, no \`<style>\` blocks. Your only job is to emit clean, well-structured semantic HTML; the page makes it beautiful.
 - Use semantic HTML only: \`<h1>\`, \`<h2>\`, \`<h3>\`, \`<p>\`, \`<ul>\`, \`<ol>\`, \`<li>\`, \`<dl>\`, \`<dt>\`, \`<dd>\`, \`<pre>\`, \`<code>\`, \`<blockquote>\`, \`<table>\`, \`<thead>\`, \`<tbody>\`, \`<tr>\`, \`<th>\`, \`<td>\`, \`<hr>\`, \`<strong>\`, \`<em>\`, \`<a>\`, \`<details>\`, \`<summary>\`.
 - The first \`<h1>\` in the brief is the page title — leave it as the only \`<h1>\`.
 - METADATA: the bold lines immediately after the \`<h1>\` (e.g. \`**Source Agent:** …\`, \`**Timestamp:** …\`, \`**Original Task:** …\`) must be converted into ONE \`<dl>\` block — one \`<dt>\`/\`<dd>\` pair per line, where \`<dt>\` is the bold label (without the trailing colon or asterisks) and \`<dd>\` is the value. Preserve all words and any inline \`<code>\` in the value. Emit nothing else between the \`<h1>\` and the first \`<h2>\`.
-- \`<h2>\` elements are top-level section headings — leave their text as-is; the scaffold renders them as serif section heads separated by a hairline rule. Do not number them yourself.
+- \`<h2>\` elements are top-level section headings — leave their text as-is; the page renders them as serif section heads separated by a hairline rule. Do not number them yourself.
 - \`<h3>\` elements are subsection headings within a section.
-- Keep the original list type from the Markdown — ORDERED (\`<ol>\`) for sequenced steps, UNORDERED (\`<ul>\`) otherwise; the scaffold styles each appropriately.
+- Keep the original list type from the Markdown — ORDERED (\`<ol>\`) for sequenced steps, UNORDERED (\`<ul>\`) otherwise; the page styles each appropriately.
 - The "Raw Context Appendix" section is long and noisy. Wrap its body content (the \`<h3>\` message labels and the \`<hr>\` separators) in \`<details><summary>Raw context (N messages)</summary>…</details>\` so it stays collapsed by default. Keep the \`<h2>\` "## Raw Context Appendix" itself outside the \`<details>\`.
 - Inside the \`<details>\`, join consecutive messages with a single \`<hr>\` separator (do not add a leading or trailing \`<hr>\`).
 
-Output the complete HTML document, starting with \`<!doctype html>\`. No JSON wrapper, no commentary.`;
+Output only the HTML fragment — no \`<!doctype html>\`, no wrapper tags, no JSON wrapper, no commentary.`;
 
 /**
  * Warm-editorial HTML scaffold for the receiver's HTML preview, following
@@ -499,8 +499,11 @@ export function injectIntoScaffold(scaffold: string, body: string): string {
 
 /**
  * Render a verbose Markdown brief as a self-contained HTML page. Calls
- * Gemini, extracts the `<main>` body from its output, and injects that
- * body into the minimal scaffold so the page styling is always ours.
+ * Gemini for a bare body fragment, then injects that fragment into the
+ * minimal scaffold so the page chrome and styling are always ours — the
+ * model never sees or reproduces the scaffold, so the masthead cannot be
+ * duplicated. If the model ignores the contract and returns a full
+ * document, the `<main>`/`<body>` inner is unwrapped before injection.
  *
  * On any Gemini-side failure, throws — the caller (receiver-brief) falls
  * back to the verbatim brief.
@@ -526,12 +529,9 @@ export async function distillToHtmlAndMarkdown(
         {
           role: "user",
           content:
-            `Render the following Markdown brief as HTML using the minimal scaffold provided. ` +
-            `Output the complete \`<!doctype html>\` document.\n\n` +
+            `Render the following Markdown brief as an HTML body fragment for insertion ` +
+            `into a pre-styled page. Output only the fragment — no document wrapper, no masthead.\n\n` +
             `---\n\n` +
-            `MINIMAL SCAFFOLD (use as the base; replace the <!-- CONTENT --> marker):\n\n` +
-            MINIMAL_HTML_SCAFFOLD +
-            `\n\n---\n\n` +
             `BRIEF:\n\n${brief}\n`,
         },
       ],
@@ -549,8 +549,12 @@ export async function distillToHtmlAndMarkdown(
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error("Gemini returned no content.");
 
-  const body = extractMainContent(content);
-  const html = body !== null ? injectIntoScaffold(MINIMAL_HTML_SCAFFOLD, body) : content;
+  // Gemini is asked for a bare body fragment. Defensively unwrap a full
+  // document down to its <main>/<body> inner if it ignored that; otherwise
+  // use the fragment as-is. Either way the page is always our scaffold, so
+  // the masthead can never be duplicated.
+  const fragment = extractMainContent(content) ?? content;
+  const html = injectIntoScaffold(MINIMAL_HTML_SCAFFOLD, fragment.trim());
 
   return { markdown: brief, html };
 }
