@@ -1,7 +1,7 @@
 import { SessionMessage } from "../adapters/types.js";
 
 /**
- * The six human-authored sections of the Handoff Skill Standard. Any field the
+ * The six human-authored sections of the Context Handoff Skill Standard. Any field the
  * sender does not provide falls back to a best-effort default derived from the
  * session, or an explicit "_Not specified_" marker.
  */
@@ -38,7 +38,7 @@ export function formatToHandoffSkill(input: HandoffInput): string {
   const nextSteps = sections.nextSteps?.trim() || NOT_SPECIFIED;
 
   return [
-    `# Agent Handoff Document`,
+    `# Context Handoff Document`,
     `**Source Agent:** ${sourceAgent}`,
     `**Timestamp:** ${timestamp}`,
     `**Original Task:** ${originalTask}`,

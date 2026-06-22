@@ -5,12 +5,12 @@ import { downloadPayload } from "../core/transport.js";
 import { decrypt } from "../core/crypto.js";
 
 const INJECTION_PREAMBLE = `SYSTEM CONTEXT INJECTION:
-You are resuming a task. You have been provided with an Agent Handoff Document.
+You are resuming a task. You have been provided with an Context Handoff Document.
 Read it carefully. Do not repeat "Completed Steps". Avoid "Failed Approaches".
 Acknowledge the "Current State" and immediately begin working on the "Next Steps".`;
 
 export async function runReceive(rawLink: string, agentArgv: string[]): Promise<void> {
-  p.intro("handoff receive");
+  p.intro("send-context receive");
 
   // commander hands us the literal "--" separator as the first token; drop it.
   if (agentArgv[0] === "--") agentArgv = agentArgv.slice(1);

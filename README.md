@@ -1,34 +1,34 @@
-# handoff
+# send-context
 
 > Relay an AI coding-agent session from one developer to another through an encrypted, ephemeral link.
 
-`handoff` is an agent-agnostic CLI for passing live context between AI coding agents — across machines, across people, across tools. A developer in one timezone exports their session; a teammate in another runs one command to pick up exactly where they left off, with the context injected straight into *their* agent.
+`send-context` is an agent-agnostic CLI for passing live context between AI coding agents — across machines, across people, across tools. A developer in one timezone exports their session; a teammate in another runs one command to pick up exactly where they left off, with the context injected straight into *their* agent.
 
-The session is distilled into a structured **Handoff Skill** document, encrypted on your machine, and stored behind a short-lived link. The transport layer only ever sees ciphertext.
+The session is distilled into a structured **Context Handoff Skill** document, encrypted on your machine, and stored behind a short-lived link. The transport layer only ever sees ciphertext.
 
 ```
   pi / Claude Code / OpenCode                          pi / Claude Code / OpenCode
             │                                                      ▲
             │ extract + format                       inject prompt │
             ▼                                                      │
-   ┌─────────────────┐   encrypt    handoff://…    decrypt   ┌─────────────────┐
-   │  handoff export │ ───────────►  edge KV (24h) ────────► │ handoff receive │
+   ┌─────────────────┐   encrypt    send-context://…    decrypt   ┌─────────────────┐
+   │  send-context export │ ───────────►  edge KV (24h) ────────► │ send-context receive │
    └─────────────────┘            (ciphertext only)          └─────────────────┘
 ```
 
 ## Features
 
 - **Agent-agnostic** — works with pi, [Claude Code](https://claude.com/claude-code), and [OpenCode](https://opencode.ai), via a small adapter per agent.
-- **The Handoff Skill Standard** — sessions become a dense, 6-section Markdown brief (objective, state, completed, failed approaches, next steps, raw appendix) instead of noisy chat logs.
+- **The Context Handoff Skill Standard** — sessions become a dense, 6-section Markdown brief (objective, state, completed, failed approaches, next steps, raw appendix) instead of noisy chat logs.
 - **Zero-knowledge transport** — AES-256-GCM encryption happens client-side; the server stores only encrypted blobs that expire after 24 hours.
-- **Wrapper injection** — `handoff receive <link> -- <agent> "prompt"` launches the receiver's own agent with the context pre-loaded.
+- **Wrapper injection** — `send-context receive <link> -- <agent> "prompt"` launches the receiver's own agent with the context pre-loaded.
 - **No native dependencies** — pure TypeScript on Node's built-in `crypto`; installs cleanly on any OS.
 - **Serverless backend** — a ~90-line Deno Deploy worker backed by Deno KV. No credit card, no infrastructure to babysit.
 
 ## How it works
 
 1. **Export** detects the active agent, extracts its session, and lets you curate what to send. You add a short written brief and pick which raw messages to attach.
-2. The brief is rendered into the Handoff Skill template, encrypted with a password you choose, and uploaded. You get a `handoff://` link.
+2. The brief is rendered into the Context Handoff Skill template, encrypted with a password you choose, and uploaded. You get a `send-context://` link.
 3. **Receive** downloads the blob, decrypts it locally, wraps it in an injection prompt, and spawns the receiving agent with that prompt as its opening message.
 
 > [!NOTE]
@@ -50,7 +50,7 @@ npm run build      # compiles src/ to dist/
 node dist/index.js --help
 ```
 
-To install the `handoff` command globally:
+To install the `send-context` command globally:
 
 ```bash
 npm install -g .
@@ -75,14 +75,14 @@ deno task deploy     # deploys --prod, prints your *.deno.net host
 ```
 
 > [!WARNING]
-> Deno KV caps each value at 64 KiB, so payloads are limited to ~60 KB. A curated handoff is far smaller; if you hit the limit, attach fewer appendix messages.
+> Deno KV caps each value at 64 KiB, so payloads are limited to ~60 KB. A curated context handoff is far smaller; if you hit the limit, attach fewer appendix messages.
 
 ## Usage
 
-### Send a handoff
+### Send a context handoff
 
 ```bash
-HANDOFF_WORKER=your-project.deno.net node dist/index.js export
+SEND_CONTEXT_WORKER=your-project.deno.net node dist/index.js export
 # or pass the host and agent explicitly:
 node dist/index.js export --worker your-project.deno.net --agent pi
 ```
@@ -90,19 +90,19 @@ node dist/index.js export --worker your-project.deno.net --agent pi
 You'll be guided through picking the agent, writing the brief, curating the appendix, and setting a password. The command prints a link:
 
 ```
-handoff://your-project.deno.net/<id>#<password>
+send-context://your-project.deno.net/<id>#<password>
 ```
 
-### Receive a handoff
+### Receive a context handoff
 
 ```bash
 # Launch an agent with the context injected:
-node dist/index.js receive 'handoff://…/<id>#<password>' -- pi "continue"
-node dist/index.js receive 'handoff://…/<id>#<password>' -- claude "continue"
-node dist/index.js receive 'handoff://…/<id>#<password>' -- opencode run "continue"
+node dist/index.js receive 'send-context://…/<id>#<password>' -- pi "continue"
+node dist/index.js receive 'send-context://…/<id>#<password>' -- claude "continue"
+node dist/index.js receive 'send-context://…/<id>#<password>' -- opencode run "continue"
 
-# Or just print the decrypted handoff document:
-node dist/index.js receive 'handoff://…/<id>#<password>'
+# Or just print the decrypted context handoff document:
+node dist/index.js receive 'send-context://…/<id>#<password>'
 ```
 
 ## Supported agents
@@ -116,7 +116,7 @@ node dist/index.js receive 'handoff://…/<id>#<password>'
 > [!TIP]
 > Adding a new agent is a single file implementing the `AgentAdapter` interface (`getName()` + `extractSession()`). Register it in `src/adapters/index.ts`.
 
-## The Handoff Skill Standard
+## The Context Handoff Skill Standard
 
 Every export is formatted into a fixed Markdown structure so the receiving model gets actionable context immediately:
 
@@ -134,9 +134,9 @@ src/
   index.ts            CLI entry (commander)
   core/
     crypto.ts         AES-256-GCM + scrypt
-    link.ts           handoff:// codec
+    link.ts           send-context:// codec
     transport.ts      upload/download client
-    formatter.ts      Handoff Skill renderer
+    formatter.ts      Context Handoff Skill renderer
     session-store.ts  JSONL helpers
     paths.ts exec.ts
   adapters/           pi, claude, opencode + registry

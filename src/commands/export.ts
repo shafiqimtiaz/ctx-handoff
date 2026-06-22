@@ -12,12 +12,12 @@ export interface ExportOptions {
 }
 
 export async function runExport(opts: ExportOptions): Promise<void> {
-  p.intro("handoff export");
+  p.intro("send-context export");
 
-  const workerHost = opts.worker ?? process.env.HANDOFF_WORKER;
+  const workerHost = opts.worker ?? process.env.SEND_CONTEXT_WORKER;
   if (!workerHost) {
     p.cancel(
-      "No worker host. Pass --worker <host> or set HANDOFF_WORKER (e.g. handoff.you.workers.dev).",
+      "No worker host. Pass --worker <host> or set SEND_CONTEXT_WORKER (e.g. your-project.deno.net).",
     );
     process.exitCode = 1;
     return;

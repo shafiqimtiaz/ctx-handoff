@@ -1,10 +1,10 @@
 /**
- * Handoff link codec.
+ * send-context link codec.
  *
- * Format: handoff://<workerHost>/<id>#<password>
+ * Format: send-context://<workerHost>/<id>#<password>
  *
- *   - workerHost: the Cloudflare Worker host (no scheme), e.g.
- *     "handoff.myname.workers.dev". https is always assumed.
+ *   - workerHost: the worker host (no scheme), e.g.
+ *     "send-context.example.deno.net". https is always assumed.
  *   - id:         the KV record id returned by the worker on upload.
  *   - password:   the symmetric password in the URL fragment. The fragment
  *     never leaves the local machine when fetching (it is client-side only),
@@ -18,21 +18,21 @@ export interface HandoffLink {
   password: string;
 }
 
-const LINK_RE = /^handoff:\/\/([^/]+)\/([^#]+)(?:#(.*))?$/;
+const LINK_RE = /^send-context:\/\/([^/]+)\/([^#]+)(?:#(.*))?$/;
 
 export function encodeLink(link: HandoffLink): string {
   const { workerHost, id, password } = link;
   if (!workerHost || !id || !password) {
     throw new Error("encodeLink: workerHost, id and password are all required.");
   }
-  return `handoff://${stripScheme(workerHost)}/${encodeURIComponent(id)}#${encodeURIComponent(password)}`;
+  return `send-context://${stripScheme(workerHost)}/${encodeURIComponent(id)}#${encodeURIComponent(password)}`;
 }
 
 export function decodeLink(raw: string): HandoffLink {
   const match = LINK_RE.exec(raw.trim());
   if (!match) {
     throw new Error(
-      "Invalid handoff link. Expected: handoff://<host>/<id>#<password>",
+      "Invalid send-context link. Expected: send-context://<host>/<id>#<password>",
     );
   }
   const [, workerHost, id, password] = match;

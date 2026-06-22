@@ -1,5 +1,5 @@
 /**
- * Handoff transport — Deno Deploy + Deno KV.
+ * send-context transport — Deno Deploy + Deno KV.
  *
  * Zero-knowledge: only ever stores already-encrypted {salt, iv, ciphertext}
  * blobs. Records auto-expire after 24h via Deno KV's native `expireIn`.
@@ -51,13 +51,13 @@ async function handleUpload(req: Request): Promise<Response> {
   }
 
   const id = randomId();
-  await kv.set(["handoff", id], body, { expireIn: TTL_MS });
+  await kv.set(["send-context", id], body, { expireIn: TTL_MS });
   return json({ id }, 201);
 }
 
 async function handleDownload(id: string): Promise<Response> {
   if (!id) return json({ error: "Missing id" }, 400);
-  const entry = await kv.get(["handoff", id]);
+  const entry = await kv.get(["send-context", id]);
   if (entry.value === null) {
     return json({ error: "Not found or expired" }, 404);
   }
