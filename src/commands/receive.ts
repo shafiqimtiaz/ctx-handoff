@@ -9,10 +9,7 @@ import {
   CancelledError,
   Prompter as BriefPrompter,
 } from "../core/receiver-brief.js";
-import {
-  distillToHtmlAndMarkdown,
-  receiverGeminiAvailable,
-} from "../core/receiver-prompts.js";
+import { distillToHtmlAndMarkdown, receiverGeminiAvailable } from "../core/receiver-prompts.js";
 import { AgentId } from "../adapters/index.js";
 import { tmpdir } from "node:os";
 import { platform } from "node:process";
@@ -27,7 +24,11 @@ import { spawn as spawnChild } from "node:child_process";
 export interface RunReceiveDeps {
   downloadPayload: (workerHost: string, id: string) => Promise<unknown>;
   decrypt: (payload: unknown, password: string) => string;
-  decodePayload: (json: string) => { version: 2; source: { agent: string; capturedAt: string }; markdown: string };
+  decodePayload: (json: string) => {
+    version: 2;
+    source: { agent: string; capturedAt: string };
+    markdown: string;
+  };
   buildReceiverBrief: typeof buildReceiverBrief;
   distillToHtmlAndMarkdown: typeof distillToHtmlAndMarkdown;
   receiverGeminiAvailable: () => boolean;
@@ -67,20 +68,21 @@ export const defaultReceiveDeps: RunReceiveDeps = {
       });
     });
   },
-  spawnAgent: (bin, args) => new Promise<number>((resolve) => {
-    const child = spawn(bin, args, { stdio: "inherit" });
-    child.on("error", (err: NodeJS.ErrnoException) => {
-      if (err.code === "ENOENT") {
-        process.stderr.write(`\nAgent '${bin}' not found. Is it installed and in your PATH?\n`);
-        process.exitCode = 127;
-      } else {
-        process.stderr.write(`\nFailed to launch '${bin}': ${err.message}\n`);
-        process.exitCode = 1;
-      }
-      resolve(process.exitCode ?? 1);
-    });
-    child.on("close", (code) => resolve(code ?? 0));
-  }),
+  spawnAgent: (bin, args) =>
+    new Promise<number>((resolve) => {
+      const child = spawn(bin, args, { stdio: "inherit" });
+      child.on("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "ENOENT") {
+          process.stderr.write(`\nAgent '${bin}' not found. Is it installed and in your PATH?\n`);
+          process.exitCode = 127;
+        } else {
+          process.stderr.write(`\nFailed to launch '${bin}': ${err.message}\n`);
+          process.exitCode = 1;
+        }
+        resolve(process.exitCode ?? 1);
+      });
+      child.on("close", (code) => resolve(code ?? 0));
+    }),
   resolveCwd: () => process.cwd(),
   resolveTmpdir: () => tmpdir(),
   now: () => Date.now(),
@@ -156,11 +158,11 @@ export async function runReceive(
   if (agentArgv.length > 0 && isAgentId(agentArgv[0])) {
     presetAgent = agentArgv[0];
     const rest = agentArgv.slice(1);
-    userRequest = rest.filter((a) => !a.startsWith("-")).join(" ")
-      || "Continue the work described above.";
+    userRequest =
+      rest.filter((a) => !a.startsWith("-")).join(" ") || "Continue the work described above.";
   } else {
-    userRequest = agentArgv.filter((a) => !a.startsWith("-")).join(" ")
-      || "Continue the work described above.";
+    userRequest =
+      agentArgv.filter((a) => !a.startsWith("-")).join(" ") || "Continue the work described above.";
   }
 
   // Non-TTY: skip the TUI flow entirely. Just print the markdown.
@@ -215,15 +217,14 @@ export async function runReceive(
 
   if (result.spawnInjection) {
     p.outro(`Launching ${result.spawnInjection.bin} with injected context…`);
-    const code = await deps.spawnAgent(
-      result.spawnInjection.bin,
-      result.spawnInjection.args,
-    );
+    const code = await deps.spawnAgent(result.spawnInjection.bin, result.spawnInjection.args);
     if (code !== 0) process.exitCode = code;
     return;
   }
 
-  p.outro(`Wrote handoff to .${result.targetAgent}/handoff.md. Launch ${result.targetAgent} manually to read it.`);
+  p.outro(
+    `Wrote handoff to .${result.targetAgent}/handoff.md. Launch ${result.targetAgent} manually to read it.`,
+  );
 }
 
 function isAgentId(v: string): v is AgentId {

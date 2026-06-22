@@ -147,10 +147,7 @@ export async function buildReceiverBrief(
     try {
       await deps.openInBrowser(htmlPath);
     } catch {
-      p.note(
-        `Open this file in your browser to review:\n${htmlPath}`,
-        "HTML preview",
-      );
+      p.note(`Open this file in your browser to review:\n${htmlPath}`, "HTML preview");
     }
   }
 

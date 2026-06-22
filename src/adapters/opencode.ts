@@ -33,11 +33,9 @@ export class OpenCodeAdapter implements AgentAdapter {
       throw new Error("No OpenCode session found for this project.");
     }
 
-    const { stdout, code, stderr } = await run(
-      OpenCodeAdapter.BIN,
-      ["export", sessionId],
-      { timeoutMs: 120_000 },
-    );
+    const { stdout, code, stderr } = await run(OpenCodeAdapter.BIN, ["export", sessionId], {
+      timeoutMs: 120_000,
+    });
     if (code !== 0) {
       throw new Error(`opencode export failed: ${stderr.trim() || `exit ${code}`}`);
     }
@@ -64,11 +62,9 @@ export class OpenCodeAdapter implements AgentAdapter {
 
   /** Parse `opencode session list` rows (newest-first) into id + title. */
   private async sessionRows(): Promise<SessionRow[]> {
-    const { stdout, code, stderr } = await run(
-      OpenCodeAdapter.BIN,
-      ["session", "list"],
-      { timeoutMs: 60_000 },
-    );
+    const { stdout, code, stderr } = await run(OpenCodeAdapter.BIN, ["session", "list"], {
+      timeoutMs: 60_000,
+    });
     if (code !== 0) {
       throw new Error(`opencode session list failed: ${stderr.trim() || `exit ${code}`}`);
     }

@@ -98,10 +98,7 @@ test("decodePayload: rejects v1 payloads with the upgrade-required error", () =>
     version: 1,
     markdown: "# Old format\n",
   });
-  assert.throws(
-    () => decodePayload(v1Json),
-    /version 1|older format|ask the sender to upgrade/i,
-  );
+  assert.throws(() => decodePayload(v1Json), /version 1|older format|ask the sender to upgrade/i);
 });
 
 test("decodePayload: rejects payloads with a missing version field", () => {
@@ -109,10 +106,7 @@ test("decodePayload: rejects payloads with a missing version field", () => {
     source: { agent: "Pi", capturedAt: "2026-06-22T12:00:00.000Z" },
     markdown: "# Brief\n",
   });
-  assert.throws(
-    () => decodePayload(json),
-    /version/i,
-  );
+  assert.throws(() => decodePayload(json), /version/i);
 });
 
 test("decodePayload: rejects payloads with a future version (e.g. v3)", () => {
@@ -165,7 +159,8 @@ test("encodePayload → decodePayload: round-trips a typical distill payload", (
   const original = {
     sourceAgent: "Pi",
     timestamp: "2026-06-22T12:00:00.000Z",
-    markdown: "# Verbose Brief\n\n`src/core/foo.ts` lines 1-50.\n\n```bash\nnpm run dev -- send\n```\n",
+    markdown:
+      "# Verbose Brief\n\n`src/core/foo.ts` lines 1-50.\n\n```bash\nnpm run dev -- send\n```\n",
   };
   const json = encodePayload(original);
   const decoded = decodePayload(json);

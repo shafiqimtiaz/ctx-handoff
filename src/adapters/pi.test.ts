@@ -20,9 +20,7 @@ test("renderParts: drops toolCall parts entirely", () => {
 });
 
 test("renderParts: drops toolCall parts even when the only content", () => {
-  const parts: PiPart[] = [
-    { type: "toolCall", name: "Read", input: { path: "/foo" } },
-  ];
+  const parts: PiPart[] = [{ type: "toolCall", name: "Read", input: { path: "/foo" } }];
   assert.equal(renderParts(parts), "");
 });
 

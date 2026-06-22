@@ -2,11 +2,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { AgentAdapter, SessionMessage, SessionRef } from "./types.js";
 import { PI_SESSIONS_ROOT, piSlug } from "../core/paths.js";
-import {
-  listJsonl,
-  readJsonl,
-  sessionTitle,
-} from "../core/session-store.js";
+import { listJsonl, readJsonl, sessionTitle } from "../core/session-store.js";
 
 /**
  * Pi adapter.

@@ -3,12 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, mkdirSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import {
-  listJsonl,
-  readJsonl,
-  sessionTitle,
-  summarizeValue,
-} from "./session-store.js";
+import { listJsonl, readJsonl, sessionTitle, summarizeValue } from "./session-store.js";
 
 function freshDir(): string {
   return mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
@@ -64,7 +59,10 @@ test("session-store: readJsonl skips blanks and malformed lines", () => {
 
   const rows = readJsonl(path) as Array<{ role: string }>;
   assert.equal(rows.length, 2);
-  assert.deepEqual(rows.map((r) => r.role), ["user", "assistant"]);
+  assert.deepEqual(
+    rows.map((r) => r.role),
+    ["user", "assistant"],
+  );
 });
 
 test("session-store: sessionTitle uses first user message", () => {

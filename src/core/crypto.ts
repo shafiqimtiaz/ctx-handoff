@@ -1,9 +1,4 @@
-import {
-  scryptSync,
-  randomBytes,
-  createCipheriv,
-  createDecipheriv,
-} from "node:crypto";
+import { scryptSync, randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
 
 /**
  * Zero-knowledge encryption helpers built on Node's native crypto.
@@ -38,10 +33,7 @@ export function encrypt(plaintext: string, password: string): EncryptedPayload {
   const key = deriveKey(password, salt);
 
   const cipher = createCipheriv(ALGORITHM, key, iv);
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
-    cipher.final(),
-  ]);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
 
   return {
@@ -68,10 +60,7 @@ export function decrypt(payload: EncryptedPayload, password: string): string {
   decipher.setAuthTag(tag);
 
   try {
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]).toString("utf8");
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
   } catch {
     // GCM auth tag mismatch — wrong password or tampered payload.
     throw new Error("INVALID_PASSWORD");

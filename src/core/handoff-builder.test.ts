@@ -29,17 +29,42 @@ class FakePrompter implements Prompter {
   passwordAnswer: string = "";
   confirmAnswer: boolean = true;
 
-  intro(msg: string) { this.introCalls.push(msg); }
-  outro(msg: string) { this.outroCalls.push(msg); }
-  cancel(msg: string) { this.cancelCalls.push(msg); }
-  note(msg: string, title?: string) { this.noteCalls.push({ msg, title }); }
-  log = { warn: (m: string) => { this.warns.push(m); }, info: () => {} };
-  spinner(): Spinner { return noopSpinner(); }
-  async select<T>(): Promise<T> { return this.selectAnswer as T; }
-  async multiselect<T>(): Promise<T[]> { return this.multiselectAnswer as T[]; }
-  async text(): Promise<string> { return this.textAnswer; }
-  async password(): Promise<string> { return this.passwordAnswer; }
-  async confirm(): Promise<boolean> { return this.confirmAnswer; }
+  intro(msg: string) {
+    this.introCalls.push(msg);
+  }
+  outro(msg: string) {
+    this.outroCalls.push(msg);
+  }
+  cancel(msg: string) {
+    this.cancelCalls.push(msg);
+  }
+  note(msg: string, title?: string) {
+    this.noteCalls.push({ msg, title });
+  }
+  log = {
+    warn: (m: string) => {
+      this.warns.push(m);
+    },
+    info: () => {},
+  };
+  spinner(): Spinner {
+    return noopSpinner();
+  }
+  async select<T>(): Promise<T> {
+    return this.selectAnswer as T;
+  }
+  async multiselect<T>(): Promise<T[]> {
+    return this.multiselectAnswer as T[];
+  }
+  async text(): Promise<string> {
+    return this.textAnswer;
+  }
+  async password(): Promise<string> {
+    return this.passwordAnswer;
+  }
+  async confirm(): Promise<boolean> {
+    return this.confirmAnswer;
+  }
 }
 
 function fakeAdapter(overrides: Partial<AgentAdapter> = {}): AgentAdapter {
@@ -54,19 +79,21 @@ function fakeAdapter(overrides: Partial<AgentAdapter> = {}): AgentAdapter {
   };
 }
 
-function baseDeps(p: Prompter, adapter: AgentAdapter, overrides: Partial<HandoffBuilderDeps> = {}): HandoffBuilderDeps {
+function baseDeps(
+  p: Prompter,
+  adapter: AgentAdapter,
+  overrides: Partial<HandoffBuilderDeps> = {},
+): HandoffBuilderDeps {
   const deps: HandoffBuilderDeps = {
     prompter: p,
     detectAgents: () => ["pi"],
     createAdapter: () => adapter,
     encrypt: () => ({ salt: "x", iv: "y", ciphertext: "z" }),
     uploadPayload: async () => "abc123",
-    encodeLink: ({ workerHost, id }: HandoffLink) =>
-      `ctx-handoff://${workerHost}/${id}`,
+    encodeLink: ({ workerHost, id }: HandoffLink) => `ctx-handoff://${workerHost}/${id}`,
     geminiAvailable: () => false,
     distillSession: async () => "# Distilled Brief\n\nBody.\n",
-    formatToHandoffSkill: (input) =>
-      `mock-doc:source=${input.sourceAgent}:md=${input.markdown}`,
+    formatToHandoffSkill: (input) => `mock-doc:source=${input.sourceAgent}:md=${input.markdown}`,
     isStdoutTty: true,
   };
   return { ...deps, ...overrides };
@@ -166,8 +193,7 @@ test("builder: distill path uses Gemini and returns the distilled markdown verba
       assert.ok(sessions.length > 0, "sessions passed to distillSession");
       return "# Distilled\n\nThe user wants to refactor the worker.\n";
     },
-    formatToHandoffSkill: (input) =>
-      `MOCK:${input.markdown}`,
+    formatToHandoffSkill: (input) => `MOCK:${input.markdown}`,
   });
 
   await buildHandoff({
@@ -239,11 +265,13 @@ test("builder: user cancel during section prompt throws CancelledError", async (
     note: (m, t) => baseP.note(m, t),
     log: baseP.log,
     spinner: () => noopSpinner(),
-    select: <T,>() => baseP.select<T>(),
-    multiselect: <T,>() => baseP.multiselect<T[]>(),
+    select: <T>() => baseP.select<T>(),
+    multiselect: <T>() => baseP.multiselect<T[]>(),
     text: () => Promise.resolve(baseP.textAnswer),
     password: () => Promise.resolve(baseP.passwordAnswer),
-    confirm: () => { throw new CancelledError(); },
+    confirm: () => {
+      throw new CancelledError();
+    },
   };
   const adapter = fakeAdapter();
   const deps = baseDeps(cancelPrompter, adapter);

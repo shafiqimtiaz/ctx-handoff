@@ -40,7 +40,10 @@ export interface Prompter {
     required?: boolean;
   }): Promise<T[]>;
   text(opts: { message: string; placeholder?: string }): Promise<string>;
-  password(opts: { message: string; validate?: (v: string) => string | undefined }): Promise<string>;
+  password(opts: {
+    message: string;
+    validate?: (v: string) => string | undefined;
+  }): Promise<string>;
   confirm(opts: { message: string; initialValue?: boolean }): Promise<boolean>;
 }
 
@@ -327,10 +330,7 @@ function renderLegacySections(sections: ManualSections): string {
   return out.join("\n");
 }
 
-async function curateAppendix(
-  messages: SessionMessage[],
-  p: Prompter,
-): Promise<SessionMessage[]> {
+async function curateAppendix(messages: SessionMessage[], p: Prompter): Promise<SessionMessage[]> {
   const recentFrom = Math.max(0, messages.length - APPENDIX_DEFAULT_RECENT);
   const options = messages.map((m, i) => ({
     value: i,

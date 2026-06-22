@@ -62,12 +62,22 @@ test("MINIMAL_HTML_SCAFFOLD: declares the editorial color palette as CSS custom 
   // The palette is a set of named tokens, not raw hex scattered through
   // selectors — that way future tweaks happen in one place.
   for (const token of [
-    "--bg", "--surface", "--surface-muted",
-    "--border", "--border-strong",
-    "--text", "--text-muted", "--text-faint",
-    "--accent", "--accent-soft", "--accent-line",
-    "--warn", "--warn-soft", "--warn-line",
-    "--code-bg", "--code-text",
+    "--bg",
+    "--surface",
+    "--surface-muted",
+    "--border",
+    "--border-strong",
+    "--text",
+    "--text-muted",
+    "--text-faint",
+    "--accent",
+    "--accent-soft",
+    "--accent-line",
+    "--warn",
+    "--warn-soft",
+    "--warn-line",
+    "--code-bg",
+    "--code-text",
   ]) {
     assert.match(
       MINIMAL_HTML_SCAFFOLD,
@@ -84,7 +94,7 @@ test("MINIMAL_HTML_SCAFFOLD: emerald accent drives h2 eyebrows and links", () =>
 });
 
 test("MINIMAL_HTML_SCAFFOLD: amber caution tokens are present for callouts and warnings", () => {
-  assert.match(MINIMAL_HTML_SCAFFOLD, /--warn\s*:\s*#b45309/);   // amber-700
+  assert.match(MINIMAL_HTML_SCAFFOLD, /--warn\s*:\s*#b45309/); // amber-700
   assert.match(MINIMAL_HTML_SCAFFOLD, /--warn-soft\s*:\s*#fffbeb/); // amber-50
 });
 
@@ -192,10 +202,7 @@ test("injectIntoScaffold: preserves scaffold structure around the injection", ()
 
 test("distillToHtmlAndMarkdown: throws when GEMINI_API_KEY is missing", async () => {
   delete process.env.GEMINI_API_KEY;
-  await assert.rejects(
-    () => distillToHtmlAndMarkdown("# Brief", "pi"),
-    /GEMINI_API_KEY/,
-  );
+  await assert.rejects(() => distillToHtmlAndMarkdown("# Brief", "pi"), /GEMINI_API_KEY/);
 });
 
 test("distillToHtmlAndMarkdown: returns the input brief verbatim as markdown", async () => {
@@ -281,8 +288,7 @@ test("distillToHtmlAndMarkdown: falls back to Gemini's full output when no <main
 
 test("distillToHtmlAndMarkdown: throws on non-OK response", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () =>
-    new Response("rate limited", { status: 429 })) as typeof fetch;
+  globalThis.fetch = (async () => new Response("rate limited", { status: 429 })) as typeof fetch;
   process.env.GEMINI_API_KEY = "test-key";
 
   try {
@@ -303,9 +309,7 @@ test("distillToHtmlAndMarkdown: does NOT use response_format: json_object", asyn
     capturedBody = JSON.parse((init as RequestInit).body as string);
     return new Response(
       JSON.stringify({
-        choices: [
-          { message: { content: "<!doctype html><body><main>x</main></body>" } },
-        ],
+        choices: [{ message: { content: "<!doctype html><body><main>x</main></body>" } }],
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );

@@ -11,13 +11,17 @@ const { version } = require("../package.json") as { version: string };
 
 program
   .name("ctx-handoff")
-  .description("Relay AI coding-agent session context between developers via an encrypted, ephemeral link.")
+  .description(
+    "Relay AI coding-agent session context between developers via an encrypted, ephemeral link.",
+  )
   .version(version)
   .enablePositionalOptions();
 
 program
   .command("send")
-  .description("Extract the current agent session, format it, encrypt it, and produce a share link.")
+  .description(
+    "Extract the current agent session, format it, encrypt it, and produce a share link.",
+  )
   .option("-a, --agent <agent>", "force agent: pi | claude | opencode")
   .option("-w, --worker <host>", "Cloudflare Worker host (or set CTX_HANDOFF_WORKER)")
   .action((opts: { agent?: string; worker?: string }) =>
@@ -26,9 +30,11 @@ program
 
 program
   .command("receive")
-  .description("Download and decrypt a context handoff, then launch an agent with the context injected.")
+  .description(
+    "Download and decrypt a context handoff, then launch an agent with the context injected.",
+  )
   .argument("<link>", "ctx-handoff:// link")
-  .argument("[agent...]", "agent command to launch after --, e.g. -- pi \"continue\"")
+  .argument("[agent...]", 'agent command to launch after --, e.g. -- pi "continue"')
   .allowUnknownOption()
   .passThroughOptions()
   .action((link: string, agent: string[]) => runReceive(link, agent ?? []));

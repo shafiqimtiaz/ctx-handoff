@@ -10,8 +10,7 @@ import { SessionMessage, SessionRef } from "../adapters/types.js";
  * structure; the model is told to preserve paths, commands, errors, and
  * identifiers verbatim.
  */
-const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
@@ -81,9 +80,7 @@ export function buildTranscript(messages: SessionMessage[], sessions: SessionRef
     const slice = messages.slice(cursor, cursor + count);
     cursor += count;
     const header = `### === SESSION ${i + 1}: ${s.title} (${count} msgs) ===`;
-    const body = slice
-      .map((m) => `### ${m.role.toUpperCase()}\n${m.content.trim()}`)
-      .join("\n\n");
+    const body = slice.map((m) => `### ${m.role.toUpperCase()}\n${m.content.trim()}`).join("\n\n");
     blocks.push(body ? `${header}\n${body}` : header);
   });
   return blocks.join("\n\n");
@@ -101,9 +98,10 @@ export async function distillSession(
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set.");
   const model = process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
 
-  const transcript = sessions.length > 0
-    ? buildTranscript(messages, sessions)
-    : messages.map((m) => `### ${m.role.toUpperCase()}\n${m.content.trim()}`).join("\n\n");
+  const transcript =
+    sessions.length > 0
+      ? buildTranscript(messages, sessions)
+      : messages.map((m) => `### ${m.role.toUpperCase()}\n${m.content.trim()}`).join("\n\n");
 
   const res = await fetch(GEMINI_ENDPOINT, {
     method: "POST",

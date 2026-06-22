@@ -19,12 +19,18 @@ class FakePrompter {
   intro(_msg: string) {}
   outro(_msg: string) {}
   cancel(_msg: string) {}
-  note(msg: string, title?: string) { this.p.notes.push({ msg, title }); }
+  note(msg: string, title?: string) {
+    this.p.notes.push({ msg, title });
+  }
   log = {
-    warn: (m: string) => { this.p.warns.push(m); },
+    warn: (m: string) => {
+      this.p.warns.push(m);
+    },
     info: (_m: string) => {},
   };
-  spinner() { return { start: () => {}, stop: () => {} }; }
+  spinner() {
+    return { start: () => {}, stop: () => {} };
+  }
   async confirm(o: { message: string; initialValue?: boolean }): Promise<boolean> {
     const k = `confirm:${o.message}`;
     if (k in this.p.answers) return this.p.answers[k] as boolean;
@@ -35,11 +41,18 @@ class FakePrompter {
     if (k in this.p.answers) return this.p.answers[k] as T;
     return o.options[0].value;
   }
-  async text(_o: { message: string }): Promise<string> { return ""; }
-  async password(_o: { message: string }): Promise<string> { return "x"; }
+  async text(_o: { message: string }): Promise<string> {
+    return "";
+  }
+  async password(_o: { message: string }): Promise<string> {
+    return "x";
+  }
 }
 
-function makeDeps(overrides: Partial<ReceiverBriefDeps> = {}): { deps: ReceiverBriefDeps; fake: FakePrompter } {
+function makeDeps(overrides: Partial<ReceiverBriefDeps> = {}): {
+  deps: ReceiverBriefDeps;
+  fake: FakePrompter;
+} {
   const fake = new FakePrompter();
   const deps: ReceiverBriefDeps = {
     prompter: fake as never,
@@ -113,9 +126,14 @@ test("buildReceiverBrief with GEMINI key renders HTML and opens it", async () =>
   deps.resolveCwd = () => cwd;
   deps.resolveTmpdir = () => tmp;
   deps.receiverGeminiAvailable = () => true;
-  deps.distillToHtmlAndMarkdown = async (md) => ({ markdown: md + " (refined)", html: "<!doctype html>rendered" });
+  deps.distillToHtmlAndMarkdown = async (md) => ({
+    markdown: md + " (refined)",
+    html: "<!doctype html>rendered",
+  });
   const opened: string[] = [];
-  deps.openInBrowser = async (path) => { opened.push(path); };
+  deps.openInBrowser = async (path) => {
+    opened.push(path);
+  };
 
   await buildReceiverBrief({ decrypted: "raw", userRequest: "", deps });
 
@@ -280,7 +298,9 @@ test("buildReceiverBrief degrades gracefully when Gemini render fails", async ()
   fake.p.answers["select:Which coding agent to hand off to?"] = "claude" as AgentId;
   deps.resolveCwd = () => cwd;
   deps.receiverGeminiAvailable = () => true;
-  deps.distillToHtmlAndMarkdown = async () => { throw new Error("rate limited"); };
+  deps.distillToHtmlAndMarkdown = async () => {
+    throw new Error("rate limited");
+  };
 
   await buildReceiverBrief({ decrypted: "fallback", userRequest: "", deps });
 

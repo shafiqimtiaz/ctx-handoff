@@ -29,9 +29,7 @@ export function encodeLink(link: HandoffLink): string {
 export function decodeLink(raw: string): HandoffLink {
   const match = LINK_RE.exec(raw.trim());
   if (!match) {
-    throw new Error(
-      "Invalid ctx-handoff link. Expected: ctx-handoff://<host>/<id>",
-    );
+    throw new Error("Invalid ctx-handoff link. Expected: ctx-handoff://<host>/<id>");
   }
   const [, workerHost, id] = match;
   return {

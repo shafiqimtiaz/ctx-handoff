@@ -9,8 +9,7 @@ import { AgentId } from "../adapters/index.js";
  *
  * Same OpenAI-compatible endpoint as the sender side; no SDK.
  */
-const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 

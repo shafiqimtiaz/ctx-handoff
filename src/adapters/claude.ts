@@ -2,11 +2,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { AgentAdapter, SessionMessage, SessionRef } from "./types.js";
 import { CLAUDE_PROJECTS_ROOT, claudeSlug } from "../core/paths.js";
-import {
-  listJsonl,
-  readJsonl,
-  sessionTitle,
-} from "../core/session-store.js";
+import { listJsonl, readJsonl, sessionTitle } from "../core/session-store.js";
 
 /**
  * Claude Code adapter.

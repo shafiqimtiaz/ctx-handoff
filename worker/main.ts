@@ -67,11 +67,7 @@ async function handleDownload(id: string): Promise<Response> {
 function isPayload(x: unknown): boolean {
   if (typeof x !== "object" || x === null) return false;
   const r = x as Record<string, unknown>;
-  return (
-    typeof r.salt === "string" &&
-    typeof r.iv === "string" &&
-    typeof r.ciphertext === "string"
-  );
+  return typeof r.salt === "string" && typeof r.iv === "string" && typeof r.ciphertext === "string";
 }
 
 function randomId(): string {

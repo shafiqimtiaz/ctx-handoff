@@ -88,10 +88,10 @@ test("distillSession: returns the raw markdown string from Gemini", async () => 
   globalThis.fetch = (async (_url: unknown, init: unknown) => {
     const body = JSON.parse((init as RequestInit).body as string);
     assert.equal(body.response_format, undefined, "no JSON response_format");
-    return new Response(
-      JSON.stringify({ choices: [{ message: { content: fakeMarkdown } }] }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ choices: [{ message: { content: fakeMarkdown } }] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }) as typeof fetch;
   process.env.GEMINI_API_KEY = "test-key";
   delete process.env.GEMINI_MODEL;
@@ -110,16 +110,12 @@ test("distillSession: returns the raw markdown string from Gemini", async () => 
 
 test("distillSession: throws when GEMINI_API_KEY is missing", async () => {
   delete process.env.GEMINI_API_KEY;
-  await assert.rejects(
-    () => distillSession([{ role: "user", content: "x" }]),
-    /GEMINI_API_KEY/,
-  );
+  await assert.rejects(() => distillSession([{ role: "user", content: "x" }]), /GEMINI_API_KEY/);
 });
 
 test("distillSession: throws on non-OK response", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () =>
-    new Response("rate limited", { status: 429 })) as typeof fetch;
+  globalThis.fetch = (async () => new Response("rate limited", { status: 429 })) as typeof fetch;
   process.env.GEMINI_API_KEY = "test-key";
 
   try {
@@ -136,17 +132,14 @@ test("distillSession: throws on non-OK response", async () => {
 test("distillSession: throws when Gemini returns no content", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async () =>
-    new Response(
-      JSON.stringify({ choices: [{ message: {} }] }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    )) as typeof fetch;
+    new Response(JSON.stringify({ choices: [{ message: {} }] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof fetch;
   process.env.GEMINI_API_KEY = "test-key";
 
   try {
-    await assert.rejects(
-      () => distillSession([{ role: "user", content: "x" }]),
-      /no content/,
-    );
+    await assert.rejects(() => distillSession([{ role: "user", content: "x" }]), /no content/);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.GEMINI_API_KEY;
@@ -159,10 +152,10 @@ test("distillSession: returns markdown even if it contains code fences (no JSON 
   const originalFetch = globalThis.fetch;
   const fakeMarkdown = "# Brief\n\n```bash\nnpm run dev -- send\n```\n";
   globalThis.fetch = (async () =>
-    new Response(
-      JSON.stringify({ choices: [{ message: { content: fakeMarkdown } }] }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    )) as typeof fetch;
+    new Response(JSON.stringify({ choices: [{ message: { content: fakeMarkdown } }] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof fetch;
   process.env.GEMINI_API_KEY = "test-key";
 
   try {

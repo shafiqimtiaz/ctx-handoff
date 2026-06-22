@@ -59,7 +59,8 @@ test("formatToHandoffSkill: does NOT inject any fixed numbered section headers (
 });
 
 test("formatToHandoffSkill: passes the markdown body through verbatim (no transformation)", () => {
-  const markdown = "# Handoff Brief: foo\n\n## Current State\n\n`src/core/distiller.ts` lines 1-50.\n\n```bash\nnpm run dev -- send\n```\n";
+  const markdown =
+    "# Handoff Brief: foo\n\n## Current State\n\n`src/core/distiller.ts` lines 1-50.\n\n```bash\nnpm run dev -- send\n```\n";
   const out = formatToHandoffSkill({ ...baseInput, markdown });
   // The exact markdown string appears in the output.
   assert.ok(out.includes(markdown), "verbatim markdown body present");

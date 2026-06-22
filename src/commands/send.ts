@@ -90,6 +90,10 @@ const clackPrompter: Prompter = {
 
 class ClackSpinner implements Spinner {
   private inner = p.spinner();
-  start(msg: string) { this.inner.start(msg); }
-  stop(msg: string) { this.inner.stop(msg); }
+  start(msg: string) {
+    this.inner.start(msg);
+  }
+  stop(msg: string) {
+    this.inner.stop(msg);
+  }
 }

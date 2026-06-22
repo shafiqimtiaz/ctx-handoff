@@ -63,9 +63,7 @@ export function decodePayload(json: string): HandoffPayload {
   try {
     obj = JSON.parse(json);
   } catch (err) {
-    throw new Error(
-      `Could not parse handoff payload as JSON: ${(err as Error).message}`,
-    );
+    throw new Error(`Could not parse handoff payload as JSON: ${(err as Error).message}`);
   }
 
   if (!obj || typeof obj !== "object") {
@@ -77,14 +75,14 @@ export function decodePayload(json: string): HandoffPayload {
   if (version === 1) {
     throw new Error(
       "This handoff link uses an older format (v1) that this build no longer accepts. " +
-      "Ask the sender to upgrade ctx-handoff and re-send.",
+        "Ask the sender to upgrade ctx-handoff and re-send.",
     );
   }
   if (version !== PAYLOAD_VERSION) {
     throw new Error(
       `This handoff link uses payload version ${JSON.stringify(version)}, which is ` +
-      `newer than this build of ctx-handoff supports (v${PAYLOAD_VERSION}). ` +
-      "Ask the sender to downgrade or upgrade the receiver.",
+        `newer than this build of ctx-handoff supports (v${PAYLOAD_VERSION}). ` +
+        "Ask the sender to downgrade or upgrade the receiver.",
     );
   }
 
@@ -104,8 +102,6 @@ export function decodePayload(json: string): HandoffPayload {
       capturedAt: source.capturedAt,
     },
     markdown: record.markdown,
-    ...(Array.isArray(record.appendix)
-      ? { appendix: record.appendix as SessionMessage[] }
-      : {}),
+    ...(Array.isArray(record.appendix) ? { appendix: record.appendix as SessionMessage[] } : {}),
   };
 }

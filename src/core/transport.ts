@@ -22,13 +22,8 @@ export async function uploadPayload(
 }
 
 /** Download an encrypted payload by id. Throws LINK_EXPIRED on 404. */
-export async function downloadPayload(
-  workerHost: string,
-  id: string,
-): Promise<EncryptedPayload> {
-  const res = await fetch(
-    `${workerBaseUrl(workerHost)}/download/${encodeURIComponent(id)}`,
-  );
+export async function downloadPayload(workerHost: string, id: string): Promise<EncryptedPayload> {
+  const res = await fetch(`${workerBaseUrl(workerHost)}/download/${encodeURIComponent(id)}`);
   if (res.status === 404) {
     throw new Error("LINK_EXPIRED");
   }

@@ -38,9 +38,7 @@ export interface AgentAdapter {
 
 export class AgentNotFoundError extends Error {
   constructor(public readonly binary: string) {
-    super(
-      `Agent '${binary}' not found. Is it installed and in your PATH?`,
-    );
+    super(`Agent '${binary}' not found. Is it installed and in your PATH?`);
     this.name = "AgentNotFoundError";
   }
 }

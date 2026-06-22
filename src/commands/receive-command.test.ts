@@ -118,7 +118,9 @@ test("runReceive: rejects payloads with a future version (e.g. v3)", async () =>
 test("runReceive: reports 'Invalid password.' for a decrypt auth-tag failure", async () => {
   const written: string[] = [];
   const deps = makeDeps({
-    decrypt: () => { throw new Error("INVALID_PASSWORD"); },
+    decrypt: () => {
+      throw new Error("INVALID_PASSWORD");
+    },
     stdoutWrite: (s) => written.push(s),
   });
 
