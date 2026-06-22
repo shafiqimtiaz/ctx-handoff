@@ -43,7 +43,8 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "jsonrepair": "^3.14.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

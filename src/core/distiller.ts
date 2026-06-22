@@ -1,3 +1,4 @@
+import { jsonrepair } from "jsonrepair";
 import { SessionMessage } from "../adapters/types.js";
 import { HandoffSections } from "./formatter.js";
 
@@ -81,11 +82,39 @@ function parseSections(content: string): HandoffSections {
 
 function extractJson(content: string): string {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  const start = content.indexOf("{");
-  const end = content.lastIndexOf("}");
-  if (start !== -1 && end > start) return content.slice(start, end + 1);
-  return content;
+  const body = fenced ? fenced[1].trim() : content;
+
+  // Isolate the JSON from any surrounding prose, then let jsonrepair fix the
+  // common ways models still mangle it: trailing commas, single quotes,
+  // unquoted keys, truncation (missing closing brackets), and so on.
+  const start = body.indexOf("{");
+  const candidate =
+    start === -1 ? body : (firstBalancedObject(body) ?? body.slice(start));
+  return jsonrepair(candidate);
+}
+
+// Return the first brace-balanced JSON object, ignoring any prose or extra
+// objects the model appends after it (thinking models often do). Tracks string
+// literals and escapes so braces inside strings don't throw off the depth count.
+function firstBalancedObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}" && --depth === 0) return text.slice(start, i + 1);
+  }
+  return null;
 }
 
 function str(v: unknown): string {
