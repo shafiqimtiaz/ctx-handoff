@@ -4,3 +4,7 @@ worker/node_modules/
 *.log
 .dev.vars
 .wrangler/
+
+# This repo ships a GitHub Actions workflow under .github/, so un-ignore it
+# (the global gitignore excludes .github/ by default for non-CI projects).
+!.github/
