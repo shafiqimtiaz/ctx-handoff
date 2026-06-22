@@ -8,3 +8,7 @@ worker/node_modules/
 # This repo ships a GitHub Actions workflow under .github/, so un-ignore it
 # (the global gitignore excludes .github/ by default for non-CI projects).
 !.github/
+
+# Commit the lockfile so CI can use `npm ci` and `setup-node` can cache
+# dependencies (the global gitignore excludes package-lock.json by default).
+!package-lock.json
