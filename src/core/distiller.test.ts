@@ -82,6 +82,31 @@ test("SYSTEM_PROMPT: tells the model to begin directly with the brief (no JSON w
 
 // ----- distillSession: returns raw markdown, no JSON parsing --------------
 
+test("distillSession: defaults to gemini-3.1-flash-lite when GEMINI_MODEL is unset", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedBody: { model?: string } = {};
+  globalThis.fetch = (async (_url: unknown, init: unknown) => {
+    capturedBody = JSON.parse((init as RequestInit).body as string);
+    return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+  process.env.GEMINI_API_KEY = "test-key";
+  delete process.env.GEMINI_MODEL;
+
+  try {
+    await distillSession(
+      [{ role: "user", content: "x" }],
+      [{ id: "s1", title: "t", mtime: 1, messageCount: 1 }],
+    );
+    assert.equal(capturedBody.model, "gemini-3.1-flash-lite");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.GEMINI_API_KEY;
+  }
+});
+
 test("distillSession: returns the raw markdown string from Gemini", async () => {
   const originalFetch = globalThis.fetch;
   const fakeMarkdown = "# Handoff Brief\n\nThe user asked to refactor the distiller.\n";

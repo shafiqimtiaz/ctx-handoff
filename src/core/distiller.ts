@@ -12,7 +12,7 @@ import { SessionMessage, SessionRef } from "../adapters/types.js";
  */
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
 export const SYSTEM_PROMPT = `You are writing a verbose handoff brief for another developer's AI coding agent. The
 input is a full session transcript (one or more merged sessions, separated by

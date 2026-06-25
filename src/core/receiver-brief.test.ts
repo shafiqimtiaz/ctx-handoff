@@ -292,6 +292,110 @@ test("buildReceiverBrief falls back to default user request when none provided",
   assert.match(result.spawnInjection!.args[0], /Continue the work described above\./);
 });
 
+test("buildReceiverBrief opencode injection uses `run --file` (not a positional prompt arg)", async () => {
+  // OpenCode's bare CLI treats positional args as a project PATH (`opencode [project]`),
+  // not a prompt. The injection must therefore go through `opencode run --file <path>`
+  // — otherwise the agent silently starts the TUI in a nonexistent directory and
+  // never sees the handoff. See https://opencode.ai/docs/cli/.
+  const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
+  const tmp = mkdtempSync(join(tmpdir(), "ctx-handoff-tmp-"));
+  const { deps, fake } = makeDeps();
+  fake.p.answers["select:Which coding agent to hand off to?"] = "opencode" as AgentId;
+  fake.p.answers["confirm:Launch opencode with this handoff injected?"] = true;
+  deps.resolveCwd = () => cwd;
+  deps.resolveTmpdir = () => tmp;
+
+  const result = await buildReceiverBrief({
+    decrypted: "# Handoff\n\nlong markdown body here",
+    userRequest: "pick up from there",
+    deps,
+  });
+
+  assert.ok(result.spawnInjection, "spawnInjection should be present");
+  assert.equal(result.spawnInjection!.bin, "opencode");
+  const args = result.spawnInjection!.args;
+  // Must be `run --file <path> <message>` — not a single positional arg.
+  assert.equal(args[0], "run");
+  assert.equal(args[1], "--file");
+  assert.equal(typeof args[2], "string");
+  assert.match(args[2], /handoff-injection-\d+\.md$/);
+  assert.ok(args[2]!.startsWith(tmp), "tmp file must live under resolveTmpdir()");
+  assert.ok(existsSync(args[2]!));
+  // The full injection (preamble + markdown + user request) must live in the
+  // file — NOT in a single argv entry.
+  assert.equal(args.length, 4);
+  const onDisk = readFileSync(args[2]!, "utf8");
+  assert.match(onDisk, /SYSTEM CONTEXT INJECTION/);
+  assert.match(onDisk, /# Handoff/);
+  assert.match(onDisk, /pick up from there/);
+  // argv message is a short kicker, not the full brief.
+  assert.doesNotMatch(args[3]!, /SYSTEM CONTEXT INJECTION/);
+});
+
+test("buildReceiverBrief pi injection keeps the legacy positional-arg shape", async () => {
+  // Regression guard: pi and claude accept a prompt as a single positional
+  // arg. Don't break their spawn shape while fixing opencode.
+  const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
+  const { deps, fake } = makeDeps();
+  fake.p.answers["select:Which coding agent to hand off to?"] = "pi" as AgentId;
+  fake.p.answers["confirm:Launch pi with this handoff injected?"] = true;
+  deps.resolveCwd = () => cwd;
+
+  const result = await buildReceiverBrief({
+    decrypted: "# Handoff",
+    userRequest: "continue",
+    deps,
+  });
+
+  assert.ok(result.spawnInjection);
+  assert.equal(result.spawnInjection!.bin, "pi");
+  assert.equal(result.spawnInjection!.args.length, 1);
+  assert.match(result.spawnInjection!.args[0]!, /SYSTEM CONTEXT INJECTION/);
+});
+
+test("buildReceiverBrief claude injection keeps the legacy positional-arg shape", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
+  const { deps, fake } = makeDeps();
+  fake.p.answers["select:Which coding agent to hand off to?"] = "claude" as AgentId;
+  fake.p.answers["confirm:Launch claude with this handoff injected?"] = true;
+  deps.resolveCwd = () => cwd;
+
+  const result = await buildReceiverBrief({
+    decrypted: "# Handoff",
+    userRequest: "continue",
+    deps,
+  });
+
+  assert.ok(result.spawnInjection);
+  assert.equal(result.spawnInjection!.bin, "claude");
+  assert.equal(result.spawnInjection!.args.length, 1);
+  assert.match(result.spawnInjection!.args[0]!, /SYSTEM CONTEXT INJECTION/);
+});
+
+test("buildReceiverBrief opencode injection tmp file is namespaced by run", async () => {
+  // Each run produces a fresh tmp file — never reuse a stale path.
+  const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
+  const tmp = mkdtempSync(join(tmpdir(), "ctx-handoff-tmp-"));
+  const { deps, fake } = makeDeps();
+  fake.p.answers["select:Which coding agent to hand off to?"] = "opencode" as AgentId;
+  fake.p.answers["confirm:Launch opencode with this handoff injected?"] = true;
+  fake.p.answers["confirm:handoff.md already exists in .opencode/. Overwrite?"] = true;
+  deps.resolveCwd = () => cwd;
+  deps.resolveTmpdir = () => tmp;
+
+  let n = 1700000000000;
+  deps.now = () => {
+    n += 1000;
+    return n;
+  };
+
+  const r1 = await buildReceiverBrief({ decrypted: "first", userRequest: "", deps });
+  const r2 = await buildReceiverBrief({ decrypted: "second", userRequest: "", deps });
+
+  assert.ok(r1.spawnInjection && r2.spawnInjection);
+  assert.notEqual(r1.spawnInjection!.args[2], r2.spawnInjection!.args[2]);
+});
+
 test("buildReceiverBrief degrades gracefully when Gemini render fails", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "ctx-handoff-test-"));
   const { deps, fake } = makeDeps();

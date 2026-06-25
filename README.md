@@ -108,7 +108,7 @@ npm i -g ctx-handoff
 
 # 2. Optional but recommended: enable Gemini distillation
 export GEMINI_API_KEY=...
-export GEMINI_MODEL=gemini-2.5-flash   # default; override only if you need to
+export GEMINI_MODEL=gemini-3.1-flash-lite   # default; override only if you need to
 
 # 3. Export — prints a ctx-handoff:// link and prompts for a password
 export CTX_HANDOFF_WORKER=your-project.deno.net
@@ -232,7 +232,7 @@ Raw sessions are noisy. Set `GEMINI_API_KEY` and `send` runs the session through
 
 ```bash
 GEMINI_API_KEY=… CTX_HANDOFF_WORKER=your-project.deno.net ctx-handoff send
-# optional: override the model (default gemini-2.5-flash)
+# optional: override the model (default gemini-3.1-flash-lite)
 GEMINI_MODEL=gemini-2.5-pro GEMINI_API_KEY=… ctx-handoff send
 ```
 
@@ -251,7 +251,7 @@ GEMINI_API_KEY=… CTX_HANDOFF_PASSWORD=… \
 | --- | --- | --- |
 | `CTX_HANDOFF_WORKER` | yes (or `--worker`) | Transport worker host, e.g. `your-project.deno.net` |
 | `GEMINI_API_KEY` | no | Enables automatic distillation |
-| `GEMINI_MODEL` | no | Override the model (default `gemini-2.5-flash`) |
+| `GEMINI_MODEL` | no | Override the model (default `gemini-3.1-flash-lite`) |
 | `CTX_HANDOFF_PASSWORD` | no | Skip the interactive password prompt |
 
 ## Troubleshooting

@@ -163,12 +163,48 @@ export async function buildReceiverBrief(
   }
 
   const injection = buildInjection(markdown, userRequest);
+  const spawnInjection = buildSpawnInjection(targetAgent, injection, tmp, deps.now);
   return {
     targetAgent,
     markdown,
     htmlPath,
-    spawnInjection: { bin: targetAgent, args: [injection] },
+    spawnInjection,
   };
+}
+
+/**
+ * Build the (bin, args) pair the receive command will spawn.
+ *
+ * OpenCode is the odd one out: its bare CLI (`opencode [project]`) treats the
+ * first positional arg as a project PATH, not a prompt. Passing the multi-KB
+ * injection as that arg makes opencode try to chdir into a directory named
+ * like the entire brief. The documented shapes are `opencode run [message..]`
+ * and `opencode --prompt "<msg>"`; we use `run --file <path>` so we sidestep
+ * ARG_MAX on long briefs (the injection can exceed the kernel argv limit on
+ * Linux). Pi and Claude Code accept a prompt as a single positional arg, so
+ * we keep the legacy shape for them.
+ * See https://opencode.ai/docs/cli/.
+ */
+function buildSpawnInjection(
+  agent: AgentId,
+  injection: string,
+  tmp: string,
+  now: () => number,
+): { bin: string; args: string[] } {
+  if (agent === "opencode") {
+    const path = join(tmp, `handoff-injection-${now()}.md`);
+    writeFileSync(path, injection, "utf8");
+    return {
+      bin: "opencode",
+      args: [
+        "run",
+        "--file",
+        path,
+        "Continue the work described in the attached handoff document.",
+      ],
+    };
+  }
+  return { bin: agent, args: [injection] };
 }
 
 function buildInjection(markdown: string, userRequest: string): string {

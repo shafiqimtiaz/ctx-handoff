@@ -11,7 +11,7 @@ import { AgentId } from "../adapters/index.js";
  */
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
 export const RECEIVER_SYSTEM_PROMPT = `You are rendering a verbose Markdown handoff brief as semantic HTML for human review. The brief is inserted into a pre-styled page, so output ONLY a body fragment: no \`<!doctype html>\`, no \`<html>\`/\`<head>\`/\`<body>\`/\`<main>\` wrapper, and no page masthead or repo-link chrome (the page already shows the product title). Begin directly with the brief's first element.
 
